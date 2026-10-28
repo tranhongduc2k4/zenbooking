@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import PatientLayout from './layouts/PatientLayout';
+import PatientPortalLayout from './layouts/PatientPortalLayout';
 import AdminLayout from './layouts/AdminLayout';
 import LandingPage from './pages/patient/LandingPage';
 import PatientDashboard from './pages/patient/PatientDashboard';
@@ -28,8 +29,8 @@ function App() {
 
         {/* 2. Protected Routes cho Bệnh nhân đã đăng nhập (ROLE_PATIENT) */}
         <Route element={<ProtectedRoute allowedRoles={['ROLE_PATIENT', 'PATIENT']} />}>
-          <Route path="/" element={<PatientLayout />}>
-            <Route path="patient-home" element={<PatientDashboard />} />
+          <Route element={<PatientPortalLayout />}>
+            <Route path="/patient-home" element={<PatientDashboard />} />
           </Route>
         </Route>
 

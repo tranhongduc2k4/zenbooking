@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 
 const LoginPage = () => {
@@ -106,9 +107,9 @@ const LoginPage = () => {
         {/* Footer / Đăng ký */}
         <div className="mt-6 text-center text-xs text-slate-500">
           Chưa có tài khoản?{' '}
-          <a href="#register" className="font-semibold text-blue-600 hover:text-blue-500">
+          <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-500">
             Đăng ký ngay
-          </a>
+          </Link>
         </div>
 
         {/* Thông tin bảo mật */}

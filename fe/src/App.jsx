@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import PatientLayout from './layouts/PatientLayout';
 import HomePage from './pages/patient/HomePage';
+import BookingPage from './pages/patient/BookingPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 
@@ -9,9 +10,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Patient Routes - Hiển thị HomePage lồng trong PatientLayout */}
+        {/* Patient Routes - Hiển thị HomePage & BookingPage lồng trong PatientLayout */}
         <Route path="/" element={<PatientLayout />}>
           <Route index element={<HomePage />} />
+          <Route path="booking" element={<BookingPage />} />
         </Route>
 
         {/* Auth Routes */}

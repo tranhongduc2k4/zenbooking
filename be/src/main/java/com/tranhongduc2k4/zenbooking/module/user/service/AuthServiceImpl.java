@@ -1,5 +1,8 @@
 package com.tranhongduc2k4.zenbooking.module.user.service;
 
+import com.tranhongduc2k4.zenbooking.common.exception.CustomException;
+import com.tranhongduc2k4.zenbooking.common.security.CustomUserDetails;
+import com.tranhongduc2k4.zenbooking.common.security.JwtUtil;
 import com.tranhongduc2k4.zenbooking.module.user.dto.AuthResponse;
 import com.tranhongduc2k4.zenbooking.module.user.dto.LoginRequest;
 import com.tranhongduc2k4.zenbooking.module.user.dto.RegisterRequest;
@@ -7,7 +10,12 @@ import com.tranhongduc2k4.zenbooking.module.user.entity.Role;
 import com.tranhongduc2k4.zenbooking.module.user.entity.User;
 import com.tranhongduc2k4.zenbooking.module.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,18 +24,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
 
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByPhone(request.getPhone())) {
-            throw new RuntimeException("Số điện thoại đã được đăng ký trong hệ thống!");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "Số điện thoại đã được đăng ký trong hệ thống!");
         }
 
-        if (request.getEmail() != null && !request.getEmail().isBlank() 
+        if (request.getEmail() != null && !request.getEmail().isBlank()
                 && userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email đã được đăng ký trong hệ thống!");
+            throw new CustomException(HttpStatus.BAD_REQUEST, "Email đã được đăng ký trong hệ thống!");
         }
 
         Role userRole = request.getRole() != null ? request.getRole() : Role.PATIENT;
@@ -41,6 +51,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         User savedUser = userRepository.save(user);
+        String token = jwtUtil.generateToken(savedUser.getPhone());
 
         return AuthResponse.builder()
                 .id(savedUser.getId())
@@ -48,27 +59,31 @@ public class AuthServiceImpl implements AuthService {
                 .phone(savedUser.getPhone())
                 .email(savedUser.getEmail())
                 .role(savedUser.getRole())
-                .token("dummy-jwt-token")
+                .token(token)
                 .build();
     }
 
     @Override
-    @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByPhoneOrEmail(request.getIdentifier(), request.getIdentifier())
-                .orElseThrow(() -> new RuntimeException("Số điện thoại/Email hoặc mật khẩu không chính xác!"));
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getIdentifier(), request.getPassword())
+            );
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new RuntimeException("Số điện thoại/Email hoặc mật khẩu không chính xác!");
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            User user = userDetails.getUser();
+            String token = jwtUtil.generateToken(authentication);
+
+            return AuthResponse.builder()
+                    .id(user.getId())
+                    .fullName(user.getFullName())
+                    .phone(user.getPhone())
+                    .email(user.getEmail())
+                    .role(user.getRole())
+                    .token(token)
+                    .build();
+        } catch (AuthenticationException ex) {
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "Số điện thoại/Email hoặc mật khẩu không chính xác!");
         }
-
-        return AuthResponse.builder()
-                .id(user.getId())
-                .fullName(user.getFullName())
-                .phone(user.getPhone())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .token("dummy-jwt-token")
-                .build();
     }
 }

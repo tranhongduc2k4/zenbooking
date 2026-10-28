@@ -19,7 +19,6 @@ function App() {
         {/* 1. Public Routes (Khách vãng lai chưa đăng nhập) */}
         <Route path="/" element={<PatientLayout />}>
           <Route index element={<LandingPage />} />
-          <Route path="booking" element={<BookingPage />} />
         </Route>
 
         {/* Auth Public Routes */}
@@ -31,6 +30,7 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={['ROLE_PATIENT', 'PATIENT']} />}>
           <Route element={<PatientPortalLayout />}>
             <Route path="/patient-home" element={<PatientDashboard />} />
+            <Route path="/booking" element={<BookingPage />} />
           </Route>
         </Route>
 

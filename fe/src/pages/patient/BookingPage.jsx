@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
   Clock, 
@@ -11,11 +11,16 @@ import {
   AlertCircle, 
   Sparkles, 
   ChevronRight,
-  ShieldAlert,
-  ArrowRight
+  ShieldCheck,
+  ArrowLeft,
+  CalendarPlus,
+  RefreshCw,
+  Info
 } from 'lucide-react';
 
 const BookingPage = () => {
+  const navigate = useNavigate();
+
   // Danh mục dịch vụ
   const services = [
     { id: 'general', name: 'Khám tổng quát & Tư vấn', price: 'Miễn phí', time: '20 phút', icon: '🩺' },
@@ -52,6 +57,20 @@ const BookingPage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formError, setFormError] = useState('');
 
+  // Tự động điền thông tin bệnh nhân từ tài khoản đã đăng nhập
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u.fullName) setPatientName(u.fullName);
+        if (u.phone) setPatientPhone(u.phone);
+      }
+    } catch (e) {
+      console.error('Không thể nạp thông tin user:', e);
+    }
+  }, []);
+
   const token = localStorage.getItem('access_token');
   const userRole = localStorage.getItem('user_role');
   const homeUrl = token
@@ -67,7 +86,7 @@ const BookingPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!patientName.trim() || !patientPhone.trim()) {
-      setFormError('Vui lòng nhập đầy đủ Họ tên và Số điện thoại!');
+      setFormError('Vui lòng nhập đầy đủ Họ tên và Số điện thoại liên hệ!');
       return;
     }
     setFormError('');
@@ -87,391 +106,422 @@ const BookingPage = () => {
   };
 
   return (
-    <div className="bg-slate-50 min-h-screen py-10 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
-        
-        {/* Header trang */}
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold mb-3">
-            <Sparkles size={14} className="text-blue-600" />
-            Đặt lịch khám trực tuyến nhanh chóng
+    <div className="space-y-6">
+      {/* Top Header Bar đồng bộ chuẩn Portal Dashboard */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">
+            <Sparkles className="w-4 h-4" />
+            Cổng Bệnh Nhân ZenBooking • Đặt lịch khám trực tuyến
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            Đặt Lịch Khám Nha Khoa
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Đặt Lịch Khám & Tư Vấn Nha Khoa
           </h1>
-          <p className="text-sm text-slate-600 mt-2">
-            Chủ động chọn bác sĩ và giờ khám phù hợp với lịch trình của bạn. Miễn phí tư vấn và chụp phim X-Quang tổng quát.
+          <p className="text-sm text-slate-500 mt-1">
+            Chủ động chọn bác sĩ, khung giờ khám và dịch vụ điều trị theo thời gian biểu của bạn.
           </p>
         </div>
 
-        {/* Modal / Màn hình đặt lịch thành công */}
-        {isSubmitted ? (
-          <div className="max-w-lg mx-auto bg-white rounded-3xl shadow-xl p-8 border border-slate-100 text-center animate-fade-in">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 size={36} />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Đặt lịch khám thành công!</h2>
-            <p className="text-sm text-slate-600 mb-6">
-              Cảm ơn <span className="font-semibold text-slate-800">{patientName}</span>, đội ngũ ZenBooking đã tiếp nhận lịch hẹn của bạn và sẽ gửi tin nhắn xác nhận tới số <span className="font-semibold text-slate-800">{patientPhone}</span> trong ít phút.
+        <div className="flex items-center gap-3">
+          <Link
+            to="/patient-home"
+            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Về Bảng điều khiển
+          </Link>
+          <div className="hidden sm:inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Miễn phí chụp X-quang tư vấn
+          </div>
+        </div>
+      </div>
+
+      {/* Thông báo lỗi nếu có */}
+      {formError && (
+        <div className="p-4 rounded-2xl bg-red-50 border border-red-200 flex items-center space-x-3 text-sm text-red-700">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-600" />
+          <span>{formError}</span>
+        </div>
+      )}
+
+      {/* Màn hình hiển thị kết quả đặt lịch thành công */}
+      {isSubmitted ? (
+        <div className="max-w-2xl mx-auto bg-white rounded-3xl shadow-sm p-8 border border-slate-200/80 text-center animate-fade-in space-y-6">
+          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <CheckCircle2 size={36} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+              Đặt lịch khám thành công!
+            </h2>
+            <p className="text-sm text-slate-600 mt-2">
+              Hệ thống ZenBooking đã tiếp nhận lịch hẹn của <strong className="text-slate-800">{patientName}</strong>. Tin nhắn SMS xác nhận sẽ được gửi tới số <strong className="text-slate-800">{patientPhone}</strong>.
             </p>
+          </div>
 
-            <div className="bg-slate-50 rounded-2xl p-4 text-left space-y-2.5 text-xs sm:text-sm text-slate-700 border border-slate-100 mb-6">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Dịch vụ:</span>
-                <span className="font-semibold text-slate-900">{currentService.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Bác sĩ phụ trách:</span>
-                <span className="font-medium text-slate-900">{currentDoctor.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Thời gian khám:</span>
-                <span className="font-bold text-blue-600">{selectedTimeSlot} - Ngày {bookingDate}</span>
-              </div>
-              <div className="flex justify-between border-t border-slate-200 pt-2">
-                <span className="text-slate-500">Chi phí ước tính:</span>
-                <span className="font-bold text-emerald-600">{currentService.price}</span>
-              </div>
+          {/* Phiếu xác nhận lịch khám */}
+          <div className="bg-slate-50/80 rounded-2xl p-5 text-left space-y-3 text-xs sm:text-sm text-slate-700 border border-slate-200/80">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+              <span className="font-semibold text-slate-900">Mã phiếu hẹn:</span>
+              <span className="font-mono font-bold text-blue-600">ZB-AP-8924</span>
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                type="button"
-                onClick={() => setIsSubmitted(false)}
-                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
-              >
-                Đặt thêm lịch mới
-              </button>
-              <Link
-                to={homeUrl}
-                className="w-full inline-flex items-center justify-center py-2.5 px-4 rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 shadow-md transition"
-              >
-                Về trang chủ
-              </Link>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Dịch vụ điều trị:</span>
+              <span className="font-medium text-slate-900 text-right">{currentService.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Bác sĩ phụ trách:</span>
+              <span className="font-medium text-slate-900 text-right">{currentDoctor.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Ngày & Giờ khám:</span>
+              <span className="font-semibold text-blue-700 text-right">
+                {selectedTimeSlot} • {bookingDate}
+              </span>
+            </div>
+            <div className="flex justify-between pt-2 border-t border-slate-200">
+              <span className="font-semibold text-slate-900">Chi phí dự kiến:</span>
+              <span className="font-bold text-emerald-600">{currentService.price}</span>
             </div>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Link
+              to="/patient-home"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm transition"
+            >
+              Xem trong Bảng điều khiển
+            </Link>
+            <button
+              type="button"
+              onClick={() => setIsSubmitted(false)}
+              className="w-full sm:w-auto py-2.5 px-5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+            >
+              Đặt thêm ca khám khác
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Form đặt lịch 2 cột (8 Cols Form - 4 Cols Sticky Summary) */
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            {/* CỘT TRÁI: CÁC BƯỚC ĐIỀN FORM (8 Cols) */}
+            <div className="lg:col-span-8 space-y-6">
               
-              {/* CỘT TRÁI: CÁC BƯỚC ĐIỀN FORM (8 Cols) */}
-              <div className="lg:col-span-8 space-y-6">
-
-                {/* BƯỚC 1: CHỌN DỊCH VỤ */}
-                <div className="bg-white rounded-2xl p-6 sm:p-7 shadow-sm border border-slate-100">
-                  <div className="flex items-center gap-3 mb-5">
-                    <span className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
-                      1
-                    </span>
-                    <div>
-                      <h2 className="text-lg font-bold text-slate-900">Chọn dịch vụ điều trị</h2>
-                      <p className="text-xs text-slate-500">Lựa chọn nhu cầu chăm sóc răng miệng của bạn</p>
-                    </div>
+              {/* BƯỚC 1: CHỌN DỊCH VỤ */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm">
+                    1
                   </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">
+                      Chọn dịch vụ điều trị
+                    </h2>
+                    <p className="text-xs text-slate-500">Lựa chọn nhu cầu chăm sóc răng miệng của bạn</p>
+                  </div>
+                </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    {services.map((svc) => {
-                      const isSelected = selectedService === svc.id;
-                      return (
-                        <div
-                          key={svc.id}
-                          onClick={() => setSelectedService(svc.id)}
-                          className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 flex items-start gap-3.5 ${
-                            isSelected
-                              ? 'border-blue-600 bg-blue-50/50 shadow-sm'
-                              : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50/50'
-                          }`}
-                        >
-                          <span className="text-2xl mt-0.5">{svc.icon}</span>
-                          <div className="flex-grow">
-                            <div className="flex items-center justify-between">
-                              <h3 className={`text-sm font-bold ${isSelected ? 'text-blue-900' : 'text-slate-800'}`}>
-                                {svc.name}
-                              </h3>
-                              <input
-                                type="radio"
-                                name="service"
-                                checked={isSelected}
-                                onChange={() => setSelectedService(svc.id)}
-                                className="text-blue-600 focus:ring-blue-500"
-                              />
-                            </div>
-                            <div className="flex items-center gap-3 mt-1.5 text-xs">
-                              <span className="font-extrabold text-blue-600">{svc.price}</span>
-                              <span className="text-slate-400">•</span>
-                              <span className="text-slate-500 flex items-center gap-1">
-                                <Clock size={12} /> {svc.time}
-                              </span>
-                            </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {services.map((item) => {
+                    const isSelected = selectedService === item.id;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => setSelectedService(item.id)}
+                        className={`cursor-pointer p-4 rounded-xl border transition-all flex items-start gap-3 relative ${
+                          isSelected
+                            ? 'border-blue-600 bg-blue-50/50 shadow-xs ring-1 ring-blue-500'
+                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
+                        }`}
+                      >
+                        <div className="text-2xl shrink-0 mt-0.5">{item.icon}</div>
+                        <div className="flex-1 pr-6">
+                          <h3 className="font-semibold text-slate-900 text-xs sm:text-sm">
+                            {item.name}
+                          </h3>
+                          <div className="mt-1 flex items-center gap-2 text-xs">
+                            <span className="font-bold text-blue-600">{item.price}</span>
+                            <span className="text-slate-400">•</span>
+                            <span className="text-slate-500 flex items-center gap-1">
+                              <Clock size={12} /> {item.time}
+                            </span>
                           </div>
                         </div>
-                      );
-                    })}
+
+                        {/* Radio indicator */}
+                        <div className="absolute top-4 right-4">
+                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                            isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                          }`}>
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white"></div>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* BƯỚC 2: CHỌN BÁC SĨ */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm">
+                    2
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">
+                      Chọn bác sĩ khám (Tùy chọn)
+                    </h2>
+                    <p className="text-xs text-slate-500">Đội ngũ bác sĩ giàu kinh nghiệm tại nha khoa ZenBooking</p>
                   </div>
                 </div>
 
-                {/* BƯỚC 2: CHỌN BÁC SĨ */}
-                <div className="bg-white rounded-2xl p-6 sm:p-7 shadow-sm border border-slate-100">
-                  <div className="flex items-center gap-3 mb-5">
-                    <span className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
-                      2
+                <div className="relative">
+                  <Stethoscope className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select
+                    value={selectedDoctor}
+                    onChange={(e) => setSelectedDoctor(e.target.value)}
+                    className="w-full pl-11 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                  >
+                    {doctors.map((doc) => (
+                      <option key={doc.id} value={doc.id}>
+                        {doc.name} - {doc.specialty}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* BƯỚC 3: CHỌN NGÀY & GIỜ KHÁM */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm">
+                    3
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">
+                      Chọn ngày & Giờ khám
+                    </h2>
+                    <p className="text-xs text-slate-500">Khung giờ hoạt động từ 08:00 đến 20:00 hàng ngày</p>
+                  </div>
+                </div>
+
+                {/* Chọn ngày khám */}
+                <div className="mb-5">
+                  <label className="block text-xs font-semibold text-slate-700 mb-2">
+                    Ngày bạn muốn khám:
+                  </label>
+                  <div className="relative max-w-xs">
+                    <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="date"
+                      value={bookingDate}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setBookingDate(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                    />
+                  </div>
+                </div>
+
+                {/* Grid chọn giờ khám: Buổi sáng */}
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-xs font-semibold text-slate-700 block mb-2">
+                      Buổi sáng (08:00 - 11:30):
                     </span>
-                    <div>
-                      <h2 className="text-lg font-bold text-slate-900">Chọn bác sĩ khám (Tùy chọn)</h2>
-                      <p className="text-xs text-slate-500">Đội ngũ bác sĩ giàu kinh nghiệm tại ZenBooking</p>
+                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                      {morningSlots.map((slot) => {
+                        const isSelected = selectedTimeSlot === slot;
+                        return (
+                          <button
+                            type="button"
+                            key={slot}
+                            onClick={() => setSelectedTimeSlot(slot)}
+                            className={`py-2 px-1 text-center font-mono text-xs font-semibold rounded-xl border transition-all ${
+                              isSelected
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/30'
+                                : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-blue-400 hover:bg-blue-50/40'
+                            }`}
+                          >
+                            {slot}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  <div className="relative">
-                    <label className="block text-xs font-semibold text-slate-700 mb-2" htmlFor="doctor-select">
-                      Bác sĩ chỉ định:
+                  {/* Buổi chiều */}
+                  <div>
+                    <span className="text-xs font-semibold text-slate-700 block mb-2">
+                      Buổi chiều & Tối (14:00 - 20:00):
+                    </span>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2">
+                      {afternoonSlots.map((slot) => {
+                        const isSelected = selectedTimeSlot === slot;
+                        return (
+                          <button
+                            type="button"
+                            key={slot}
+                            onClick={() => setSelectedTimeSlot(slot)}
+                            className={`py-2 px-1 text-center font-mono text-xs font-semibold rounded-xl border transition-all ${
+                              isSelected
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/30'
+                                : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-blue-400 hover:bg-blue-50/40'
+                            }`}
+                          >
+                            {slot}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* BƯỚC 4: THÔNG TIN BỆNH NHÂN & GHI CHÚ */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm">
+                    4
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">
+                      Thông tin liên hệ & Triệu chứng
+                    </h2>
+                    <p className="text-xs text-slate-500">Thông tin được bảo mật chuẩn hồ sơ bệnh án y tế</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Họ và tên bệnh nhân <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                        <Stethoscope size={18} />
-                      </div>
-                      <select
-                        id="doctor-select"
-                        value={selectedDoctor}
-                        onChange={(e) => setSelectedDoctor(e.target.value)}
-                        className="block w-full pl-11 pr-10 py-3 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                      >
-                        {doctors.map((doc) => (
-                          <option key={doc.id} value={doc.id}>
-                            {doc.name} - {doc.specialty}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* BƯỚC 3: CHỌN NGÀY VÀ GIỜ KHÁM */}
-                <div className="bg-white rounded-2xl p-6 sm:p-7 shadow-sm border border-slate-100">
-                  <div className="flex items-center gap-3 mb-5">
-                    <span className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
-                      3
-                    </span>
-                    <div>
-                      <h2 className="text-lg font-bold text-slate-900">Chọn ngày & Khung giờ khám</h2>
-                      <p className="text-xs text-slate-500">Hệ thống hiển thị các khung giờ còn trống</p>
-                    </div>
-                  </div>
-
-                  {/* Input chọn ngày */}
-                  <div className="mb-6">
-                    <label className="block text-xs font-semibold text-slate-700 mb-2" htmlFor="booking-date">
-                      Ngày khám mong muốn:
-                    </label>
-                    <div className="relative max-w-xs">
+                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
-                        id="booking-date"
-                        type="date"
-                        value={bookingDate}
-                        min={new Date().toISOString().split('T')[0]}
-                        onChange={(e) => setBookingDate(e.target.value)}
-                        className="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        type="text"
+                        required
+                        value={patientName}
+                        onChange={(e) => setPatientName(e.target.value)}
+                        placeholder="Ví dụ: Trần Hồng Đức"
+                        className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
                       />
                     </div>
                   </div>
 
-                  {/* Slot buổi sáng */}
-                  <div className="space-y-4">
-                    <div>
-                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2.5">
-                        🌅 Khung giờ buổi sáng
-                      </span>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                        {morningSlots.map((time) => {
-                          const isActive = selectedTimeSlot === time;
-                          return (
-                            <button
-                              key={time}
-                              type="button"
-                              onClick={() => setSelectedTimeSlot(time)}
-                              className={`py-2 px-2 text-xs font-semibold rounded-lg border text-center transition-all ${
-                                isActive
-                                  ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-105'
-                                  : 'bg-white text-slate-700 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50'
-                              }`}
-                            >
-                              {time}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Slot buổi chiều */}
-                    <div className="pt-2">
-                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2.5">
-                        🌇 Khung giờ buổi chiều & tối
-                      </span>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                        {afternoonSlots.map((time) => {
-                          const isActive = selectedTimeSlot === time;
-                          return (
-                            <button
-                              key={time}
-                              type="button"
-                              onClick={() => setSelectedTimeSlot(time)}
-                              className={`py-2 px-2 text-xs font-semibold rounded-lg border text-center transition-all ${
-                                isActive
-                                  ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-105'
-                                  : 'bg-white text-slate-700 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50'
-                              }`}
-                            >
-                              {time}
-                            </button>
-                          );
-                        })}
-                      </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Số điện thoại nhận SMS <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="tel"
+                        required
+                        value={patientPhone}
+                        onChange={(e) => setPatientPhone(e.target.value)}
+                        placeholder="Ví dụ: 0987 654 321"
+                        className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                      />
                     </div>
                   </div>
                 </div>
 
-                {/* BƯỚC 4: THÔNG TIN BỆNH NHÂN & GHI CHÚ */}
-                <div className="bg-white rounded-2xl p-6 sm:p-7 shadow-sm border border-slate-100">
-                  <div className="flex items-center gap-3 mb-5">
-                    <span className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
-                      4
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Ghi chú triệu chứng hoặc yêu cầu riêng (Tùy chọn)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Ví dụ: Tôi hay bị ê buốt răng hàm dưới khi uống nước lạnh, muốn khám và tư vấn bọc sứ..."
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* CỘT PHẢI: TỔNG KẾT & XÁC NHẬN (4 Cols Sticky) */}
+            <div className="lg:col-span-4 sticky top-24 space-y-4">
+              <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <h3 className="text-base font-bold text-slate-900">
+                    Tóm tắt lịch hẹn
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold text-[10px]">
+                    Bệnh nhân
+                  </span>
+                </div>
+
+                <div className="py-4 space-y-3.5 text-xs sm:text-sm text-slate-600 border-b border-slate-100">
+                  <div>
+                    <span className="text-slate-400 block text-xs">Dịch vụ điều trị:</span>
+                    <span className="font-semibold text-slate-900 mt-0.5 block">
+                      {currentService.name}
                     </span>
-                    <div>
-                      <h2 className="text-lg font-bold text-slate-900">Thông tin người khám & Triệu chứng</h2>
-                      <p className="text-xs text-slate-500">Thông tin dùng để phòng khám liên hệ gửi mã lịch hẹn</p>
-                    </div>
-                  </div>
-
-                  {formError && (
-                    <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center space-x-2 text-xs text-red-600">
-                      <AlertCircle size={16} />
-                      <span>{formError}</span>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5" htmlFor="name">
-                        Họ và tên bệnh nhân <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                          <User size={16} />
-                        </div>
-                        <input
-                          id="name"
-                          type="text"
-                          required
-                          value={patientName}
-                          onChange={(e) => setPatientName(e.target.value)}
-                          placeholder="Ví dụ: Trần Hồng Đức"
-                          className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5" htmlFor="phone">
-                        Số điện thoại liên hệ <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                          <Phone size={16} />
-                        </div>
-                        <input
-                          id="phone"
-                          type="tel"
-                          required
-                          value={patientPhone}
-                          onChange={(e) => setPatientPhone(e.target.value)}
-                          placeholder="Ví dụ: 0987654321"
-                          className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5" htmlFor="note">
-                      Mô tả tình trạng răng / Ghi chú thêm
-                    </label>
-                    <textarea
-                      id="note"
-                      rows={3}
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      placeholder="Ví dụ: Tôi thường xuyên bị ê buốt răng hàm dưới khi uống nước đá, hoặc có tiền sử dị ứng thuốc tê..."
-                      className="w-full p-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    ></textarea>
+                    <span className="text-slate-400 block text-xs">Bác sĩ phụ trách:</span>
+                    <span className="font-medium text-slate-800 mt-0.5 block">
+                      {currentDoctor.name}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100 flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] text-blue-600 block font-medium">Ngày khám</span>
+                      <span className="font-bold text-slate-800">{bookingDate}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[11px] text-blue-600 block font-medium">Giờ khám</span>
+                      <span className="font-bold font-mono text-blue-700 text-sm">{selectedTimeSlot}</span>
+                    </div>
                   </div>
                 </div>
 
-              </div>
-
-              {/* CỘT PHẢI: SUMMARY TỔNG KẾT & SUBMIT (4 Cols Sticky) */}
-              <div className="lg:col-span-4 sticky top-28">
-                <div className="bg-white rounded-2xl p-6 shadow-xl border border-slate-100">
-                  <h3 className="text-base font-bold text-slate-900 pb-4 border-b border-slate-100 flex items-center justify-between">
-                    <span>Tóm tắt lịch hẹn</span>
-                    <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                      Bệnh nhân
-                    </span>
-                  </h3>
-
-                  <div className="py-4 space-y-3.5 text-xs text-slate-600 border-b border-slate-100">
-                    <div>
-                      <span className="text-slate-400 block mb-0.5">Dịch vụ điều trị:</span>
-                      <span className="font-bold text-slate-800 text-sm">{currentService.name}</span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 block mb-0.5">Bác sĩ phụ trách:</span>
-                      <span className="font-medium text-slate-800">{currentDoctor.name}</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                        <span className="text-slate-400 block text-[11px]">Ngày khám:</span>
-                        <span className="font-bold text-slate-800">{bookingDate}</span>
-                      </div>
-                      <div className="bg-blue-50 p-2.5 rounded-xl border border-blue-100">
-                        <span className="text-blue-500 block text-[11px]">Giờ khám:</span>
-                        <span className="font-extrabold text-blue-700 text-sm">{selectedTimeSlot}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Giá dự kiến */}
-                  <div className="py-4 flex justify-between items-center">
-                    <div>
-                      <span className="text-xs text-slate-400 block">Chi phí dự kiến:</span>
-                      <span className="text-lg font-black text-blue-600">{currentService.price}</span>
-                    </div>
-                    <span className="text-[11px] text-slate-400 bg-slate-100 px-2 py-1 rounded">
-                      Thanh toán tại quầy
+                <div className="pt-4 space-y-4">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xs text-slate-500 font-medium">Chi phí dự kiến:</span>
+                    <span className="text-xl font-bold text-blue-600">
+                      {currentService.price}
                     </span>
                   </div>
 
-                  {/* Nút Submit */}
                   <button
                     type="submit"
-                    className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                    className="w-full py-3 px-4 rounded-xl font-bold text-sm text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/25 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 cursor-pointer"
                   >
                     <span>Xác nhận đặt lịch</span>
-                    <ArrowRight size={16} />
+                    <ChevronRight size={16} />
                   </button>
 
-                  <p className="text-[11px] text-slate-400 text-center mt-3">
-                    Bằng việc xác nhận, bạn đồng ý với chính sách tiếp nhận và bảo mật y tế của ZenBooking.
-                  </p>
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 text-center">
+                    <ShieldCheck size={14} className="text-emerald-500" />
+                    <span>Cam kết bảo mật & Miễn phí hủy trước 2h</span>
+                  </div>
                 </div>
               </div>
 
+              {/* Widget Trợ giúp nhanh */}
+              <div className="p-4 rounded-2xl bg-slate-100/80 border border-slate-200/60 text-xs text-slate-600 space-y-1.5">
+                <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5 text-blue-600" />
+                  Cần hỗ trợ đổi giờ khám?
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Bạn có thể liên hệ hotline <strong>1900 8888</strong> để nhân viên tư vấn sắp xếp giờ theo yêu cầu đặc biệt.
+                </p>
+              </div>
             </div>
-          </form>
-        )}
-
-      </div>
+          </div>
+        </form>
+      )}
     </div>
   );
 };

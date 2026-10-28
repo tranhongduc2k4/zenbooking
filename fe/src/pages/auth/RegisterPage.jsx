@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { User, Phone, Mail, Lock, Eye, EyeOff, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { User, Phone, Mail, Lock, Eye, EyeOff, ShieldCheck, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import authApi from '../../services/authApi';
 
 const RegisterPage = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -14,6 +16,8 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,18 +28,35 @@ const RegisterPage = () => {
     if (errorMessage) setErrorMessage('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       setErrorMessage('Mật khẩu xác nhận không khớp!');
       return;
     }
-    console.log('Dữ liệu đăng ký:', {
-      fullName: formData.fullName,
-      phone: formData.phone,
-      email: formData.email,
-      password: formData.password,
-    });
+
+    setIsLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      await authApi.register({
+        fullName: formData.fullName.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email ? formData.email.trim() : null,
+        password: formData.password,
+      });
+
+      setSuccessMessage('Đăng ký tài khoản thành công! Đang chuyển hướng sang trang Đăng nhập...');
+      setTimeout(() => {
+        navigate('/login');
+      }, 1800);
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Đăng ký không thành công, vui lòng thử lại!';
+      setErrorMessage(msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -51,6 +72,14 @@ const RegisterPage = () => {
           <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Tạo tài khoản mới</h2>
           <p className="text-sm text-slate-500 mt-1">Đăng ký thành viên tại phòng khám ZenBooking</p>
         </div>
+
+        {/* Thông báo thành công nếu có */}
+        {successMessage && (
+          <div className="mb-5 p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center space-x-2 text-sm text-emerald-700">
+            <CheckCircle2 size={18} className="flex-shrink-0 text-emerald-600" />
+            <span>{successMessage}</span>
+          </div>
+        )}
 
         {/* Thông báo lỗi nếu có */}
         {errorMessage && (
@@ -189,9 +218,17 @@ const RegisterPage = () => {
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+              disabled={isLoading}
+              className="w-full flex items-center justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
             >
-              Đăng ký tài khoản
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Đang xử lý đăng ký...
+                </>
+              ) : (
+                'Đăng ký tài khoản'
+              )}
             </button>
           </div>
         </form>

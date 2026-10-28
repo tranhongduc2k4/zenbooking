@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { User, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { User, Lock, Eye, EyeOff, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
+import authApi from '../../services/authApi';
 
 const LoginPage = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     identifier: '',
     password: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -16,11 +20,40 @@ const LoginPage = () => {
       ...prev,
       [name]: value,
     }));
+    if (errorMessage) setErrorMessage('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Dữ liệu đăng nhập:', formData);
+    setIsLoading(true);
+    setErrorMessage('');
+
+    try {
+      const res = await authApi.login({
+        identifier: formData.identifier.trim(),
+        password: formData.password,
+      });
+
+      // Lưu trữ token và thông tin người dùng
+      if (res.token) {
+        localStorage.setItem('access_token', res.token);
+      }
+      localStorage.setItem('user', JSON.stringify(res));
+
+      // Phân quyền điều hướng
+      if (res.role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        'Số điện thoại/Email hoặc mật khẩu không chính xác!';
+      setErrorMessage(msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -29,13 +62,21 @@ const LoginPage = () => {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
         
         {/* Header / Brand Logo */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 mb-3 shadow-inner">
             <span className="text-3xl">🦷</span>
           </div>
           <h2 className="text-2xl font-bold text-slate-800 tracking-tight">ZenBooking</h2>
           <p className="text-sm text-slate-500 mt-1">Hệ thống quản lý & đặt lịch khám nha khoa</p>
         </div>
+
+        {/* Thông báo lỗi nếu có */}
+        {errorMessage && (
+          <div className="mb-5 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center space-x-2 text-sm text-red-600">
+            <AlertCircle size={18} className="flex-shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
         {/* Form đăng nhập */}
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -98,9 +139,17 @@ const LoginPage = () => {
           {/* Nút Đăng nhập */}
           <button
             type="submit"
-            className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+            disabled={isLoading}
+            className="w-full flex items-center justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
           >
-            Đăng nhập
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Đang đăng nhập...
+              </>
+            ) : (
+              'Đăng nhập'
+            )}
           </button>
         </form>
 

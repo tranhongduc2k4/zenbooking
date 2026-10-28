@@ -2,30 +2,43 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import PatientLayout from './layouts/PatientLayout';
 import AdminLayout from './layouts/AdminLayout';
-import HomePage from './pages/patient/HomePage';
+import LandingPage from './pages/patient/LandingPage';
+import PatientDashboard from './pages/patient/PatientDashboard';
 import BookingPage from './pages/patient/BookingPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import UnauthorizedPage from './pages/error/UnauthorizedPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Patient Routes - Hiển thị HomePage & BookingPage lồng trong PatientLayout */}
+        {/* 1. Public Routes (Khách vãng lai chưa đăng nhập) */}
         <Route path="/" element={<PatientLayout />}>
-          <Route index element={<HomePage />} />
+          <Route index element={<LandingPage />} />
           <Route path="booking" element={<BookingPage />} />
         </Route>
 
-        {/* Admin Routes - Hiển thị DashboardPage lồng trong AdminLayout */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<DashboardPage />} />
-        </Route>
-
-        {/* Auth Routes */}
+        {/* Auth Public Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+        {/* 2. Protected Routes cho Bệnh nhân đã đăng nhập (ROLE_PATIENT) */}
+        <Route element={<ProtectedRoute allowedRoles={['ROLE_PATIENT', 'PATIENT']} />}>
+          <Route path="/" element={<PatientLayout />}>
+            <Route path="patient-home" element={<PatientDashboard />} />
+          </Route>
+        </Route>
+
+        {/* 3. Protected Routes cho Quản trị viên (ROLE_ADMIN) */}
+        <Route element={<ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ADMIN']} />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<DashboardPage />} />
+          </Route>
+        </Route>
 
         {/* Fallback điều hướng về trang chủ */}
         <Route path="*" element={<Navigate to="/" replace />} />

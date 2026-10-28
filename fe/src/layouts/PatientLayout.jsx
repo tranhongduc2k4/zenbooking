@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
-import { Calendar, Phone, Clock, MapPin, Menu, X, Shield, ChevronRight } from 'lucide-react';
+import { Calendar, Phone, Clock, MapPin, Menu, X, Shield, ChevronRight, User, LogOut } from 'lucide-react';
 
 const PatientLayout = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const token = localStorage.getItem('access_token');
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem('user'));
+  } catch {}
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('user_role');
+    window.location.href = '/login';
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
@@ -65,12 +77,31 @@ const PatientLayout = () => {
 
             {/* Actions Desktop */}
             <div className="hidden md:flex items-center space-x-4">
-              <Link
-                to="/login"
-                className="text-sm font-semibold text-slate-700 hover:text-blue-600 px-3 py-2 transition-colors"
-              >
-                Đăng nhập
-              </Link>
+              {token ? (
+                <div className="flex items-center gap-3">
+                  <Link
+                    to="/patient-home"
+                    className="flex items-center gap-2 text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3.5 py-2 rounded-xl transition-colors border border-blue-200"
+                  >
+                    <User size={16} />
+                    <span>{user?.fullName || 'Bảng điều khiển'}</span>
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    title="Đăng xuất"
+                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                  >
+                    <LogOut size={16} />
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  to="/login"
+                  className="text-sm font-semibold text-slate-700 hover:text-blue-600 px-3 py-2 transition-colors"
+                >
+                  Đăng nhập
+                </Link>
+              )}
               <Link
                 to="/booking"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/25 transition-all transform hover:-translate-y-0.5"
@@ -117,13 +148,34 @@ const PatientLayout = () => {
               Đặt lịch khám
             </Link>
             <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
-              <Link
-                to="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-2.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Đăng nhập
-              </Link>
+              {token ? (
+                <>
+                  <Link
+                    to="/patient-home"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-center py-2.5 rounded-lg bg-blue-50 text-sm font-semibold text-blue-700 border border-blue-200"
+                  >
+                    Bảng điều khiển: {user?.fullName || 'Bệnh nhân'}
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full text-center py-2 rounded-lg text-sm text-red-600 hover:bg-red-50"
+                  >
+                    Đăng xuất
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center py-2.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Đăng nhập
+                </Link>
+              )}
               <Link
                 to="/booking"
                 onClick={() => setMobileMenuOpen(false)}

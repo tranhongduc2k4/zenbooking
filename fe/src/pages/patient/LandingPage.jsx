@@ -12,7 +12,7 @@ import {
   PhoneCall
 } from 'lucide-react';
 
-const HomePage = () => {
+const LandingPage = () => {
   // Danh sách các dịch vụ nổi bật
   const services = [
     {
@@ -277,4 +277,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage;
+export default LandingPage;

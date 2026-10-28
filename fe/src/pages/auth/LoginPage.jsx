@@ -34,17 +34,23 @@ const LoginPage = () => {
         password: formData.password,
       });
 
-      // Lưu trữ token và thông tin người dùng
+      // Lưu trữ token, role và thông tin người dùng vào localStorage
       if (res.token) {
         localStorage.setItem('access_token', res.token);
       }
+      if (res.role) {
+        localStorage.setItem('user_role', res.role);
+      }
       localStorage.setItem('user', JSON.stringify(res));
 
-      // Phân quyền điều hướng
-      if (res.role === 'ADMIN') {
+      // Phân quyền điều hướng theo role
+      const userRole = res.role;
+      if (userRole === 'ROLE_ADMIN' || userRole === 'ADMIN') {
         navigate('/admin');
+      } else if (userRole === 'ROLE_PATIENT' || userRole === 'PATIENT') {
+        navigate('/patient-home');
       } else {
-        navigate('/');
+        navigate('/patient-home');
       }
     } catch (error) {
       const msg =

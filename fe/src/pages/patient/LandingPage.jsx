@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
   Sparkles, 
@@ -13,6 +13,20 @@ import {
 } from 'lucide-react';
 
 const LandingPage = () => {
+  const navigate = useNavigate();
+
+  // LandingPage chỉ dành cho người CHƯA đăng nhập. Nếu đã đăng nhập, tự động chuyển về dashboard phù hợp.
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    const userRole = localStorage.getItem('user_role');
+    if (token) {
+      if (userRole === 'ROLE_ADMIN' || userRole === 'ADMIN') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/patient-home', { replace: true });
+      }
+    }
+  }, [navigate]);
   // Danh sách các dịch vụ nổi bật
   const services = [
     {

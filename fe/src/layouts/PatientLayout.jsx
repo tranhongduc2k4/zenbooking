@@ -10,6 +10,13 @@ const PatientLayout = () => {
     user = JSON.parse(localStorage.getItem('user'));
   } catch {}
 
+  const userRole = localStorage.getItem('user_role') || user?.role;
+  const homeUrl = token
+    ? userRole === 'ROLE_ADMIN' || userRole === 'ADMIN'
+      ? '/admin'
+      : '/patient-home'
+    : '/';
+
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
@@ -42,7 +49,7 @@ const PatientLayout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-3 group">
+            <Link to={homeUrl} className="flex items-center space-x-3 group">
               <div className="w-11 h-11 rounded-xl bg-blue-600 text-white flex items-center justify-center text-2xl shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
                 🦷
               </div>
@@ -58,7 +65,7 @@ const PatientLayout = () => {
 
             {/* Menu Links trên Desktop */}
             <div className="hidden md:flex items-center space-x-8 text-sm font-semibold text-slate-600">
-              <Link to="/" className="text-blue-600 hover:text-blue-700 transition-colors">
+              <Link to={homeUrl} className="text-blue-600 hover:text-blue-700 transition-colors">
                 Trang chủ
               </Link>
               <a href="#services" className="hover:text-blue-600 transition-colors">
@@ -127,7 +134,7 @@ const PatientLayout = () => {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-slate-100 bg-white px-4 pt-3 pb-6 space-y-3">
             <Link
-              to="/"
+              to={homeUrl}
               onClick={() => setMobileMenuOpen(false)}
               className="block py-2 text-base font-semibold text-blue-600"
             >

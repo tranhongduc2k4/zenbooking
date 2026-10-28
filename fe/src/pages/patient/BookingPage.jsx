@@ -52,6 +52,14 @@ const BookingPage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formError, setFormError] = useState('');
 
+  const token = localStorage.getItem('access_token');
+  const userRole = localStorage.getItem('user_role');
+  const homeUrl = token
+    ? userRole === 'ROLE_ADMIN' || userRole === 'ADMIN'
+      ? '/admin'
+      : '/patient-home'
+    : '/';
+
   // Lấy chi tiết dịch vụ và bác sĩ hiện tại
   const currentService = services.find((s) => s.id === selectedService) || services[0];
   const currentDoctor = doctors.find((d) => d.id === selectedDoctor) || doctors[0];
@@ -135,7 +143,7 @@ const BookingPage = () => {
                 Đặt thêm lịch mới
               </button>
               <Link
-                to="/"
+                to={homeUrl}
                 className="w-full inline-flex items-center justify-center py-2.5 px-4 rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 shadow-md transition"
               >
                 Về trang chủ

@@ -45,7 +45,12 @@ const LoginPage = () => {
 
       // Phân quyền điều hướng theo role
       const userRole = res.role;
-      if (userRole === 'ROLE_ADMIN' || userRole === 'ADMIN') {
+      if (
+        userRole === 'ROLE_ADMIN' || 
+        userRole === 'ADMIN' || 
+        userRole === 'ROLE_DOCTOR' || 
+        userRole === 'DOCTOR'
+      ) {
         navigate('/admin');
       } else if (userRole === 'ROLE_PATIENT' || userRole === 'PATIENT') {
         navigate('/patient-home');

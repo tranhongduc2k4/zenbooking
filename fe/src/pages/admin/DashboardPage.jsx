@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calendar, 
   Users, 
@@ -17,15 +17,33 @@ import {
   Check,
   X,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Pill,
+  FileText,
+  Activity,
+  Stethoscope
 } from 'lucide-react';
 
 const DashboardPage = () => {
-  // State tìm kiếm và lọc trạng thái lịch hẹn
+  const [currentUser, setCurrentUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
-  // Dữ liệu giả định (Mock Data) lịch hẹn sắp tới
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        setCurrentUser(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Không thể nạp thông tin user:', e);
+    }
+  }, []);
+
+  const userRole = localStorage.getItem('user_role') || currentUser?.role;
+  const isDoctor = userRole === 'ROLE_DOCTOR' || userRole === 'DOCTOR';
+
+  // Dữ liệu giả định (Mock Data) lịch hẹn
   const [appointments, setAppointments] = useState([
     {
       id: 'APT-1001',
@@ -93,7 +111,7 @@ const DashboardPage = () => {
       patientCode: 'BN-8806',
       phone: '0948 222 111',
       service: 'Khám tổng quát định kỳ',
-      doctor: 'Bác sĩ phân bổ',
+      doctor: 'BS. CKI Trần Minh Tuấn',
       time: '15:30',
       date: 'Hôm nay',
       status: 'COMPLETED', // Hoàn thành
@@ -144,21 +162,21 @@ const DashboardPage = () => {
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            Đã xác nhận
+            Đã duyệt
           </span>
         );
       case 'IN_PROGRESS':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/80">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>
-            Đang khám
+            Đang tại ghế nha
           </span>
         );
       case 'COMPLETED':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/80">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-            Hoàn thành
+            Đã hoàn thành
           </span>
         );
       default:
@@ -170,13 +188,6 @@ const DashboardPage = () => {
     }
   };
 
-  // Danh sách bác sĩ trực ca hôm nay
-  const onDutyDoctors = [
-    { name: 'BS. CKI Trần Minh Tuấn', specialty: 'Chỉnh nha & Răng khôn', patients: 8, status: 'Bận' },
-    { name: 'ThS. BS Lê Hoàng Yến', specialty: 'Nha khoa Thẩm mỹ', patients: 6, status: 'Đang khám' },
-    { name: 'BS. Nguyễn Văn Hùng', specialty: 'Cấy ghép Implant', patients: 5, status: 'Sẵn sàng' },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Page Title & Welcome Bar */}
@@ -184,13 +195,17 @@ const DashboardPage = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">
             <Sparkles className="w-4 h-4" />
-            Hệ thống quản lý nha khoa ZenBooking
+            {isDoctor 
+              ? 'Hệ thống Quản lý Lâm Sàng Nha Khoa • Dành cho Bác sĩ' 
+              : 'Hệ thống Quản trị Nha Khoa ZenBooking'}
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Tổng quan Hoạt động Phòng khám
+            {isDoctor 
+              ? `Bảng Điều Khiển Bác Sĩ - ${currentUser?.fullName || 'BS. Chuyên Khoa'}` 
+              : 'Tổng quan Hoạt động Phòng khám'}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Hôm nay: <span className="font-medium text-slate-700">Thứ Tư, 28/10/2026</span> • Dữ liệu được đồng bộ theo thời gian thực.
+            Hôm nay: <span className="font-medium text-slate-700">Thứ Tư, 28/10/2026</span> • Dữ liệu cập nhật theo thời gian thực.
           </p>
         </div>
 
@@ -204,108 +219,200 @@ const DashboardPage = () => {
           </button>
           <div className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Phòng khám mở cửa (08:00 - 20:00)
+            {isDoctor ? 'Đang trong ca trực khám' : 'Phòng khám mở cửa (08:00 - 20:00)'}
           </div>
         </div>
       </div>
 
-      {/* Nhiệm vụ 1: 4 Thẻ thống kê nhanh (Overview Cards) */}
+      {/* 4 Thẻ thống kê (Overview Cards) - Tự động điều chỉnh theo Role */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        {/* Card 1: Lịch hẹn hôm nay */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-              Lịch hẹn hôm nay
-            </span>
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Calendar className="w-5 h-5" />
+        {isDoctor ? (
+          /* Thống kê dành cho Bác sĩ (Tập trung chuyên môn lâm sàng, không hiển thị doanh thu) */
+          <>
+            {/* Card 1: Ca khám hôm nay */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Ca khám hôm nay của tôi
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Calendar className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-slate-900 tracking-tight">8</span>
+                <span className="text-xs text-slate-500">ca đã xếp</span>
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>+2 ca so với hôm qua</span>
+              </div>
             </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-slate-900 tracking-tight">28</span>
-            <span className="text-xs text-slate-500">cuộc hẹn</span>
-          </div>
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+12% so với hôm qua</span>
-          </div>
-        </div>
 
-        {/* Card 2: Bệnh nhân mới */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-              Bệnh nhân mới
-            </span>
-            <div className="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
-              <Users className="w-5 h-5" />
+            {/* Card 2: Bệnh nhân đang chờ */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Bệnh nhân tại phòng chờ
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Users className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-slate-900 tracking-tight">3</span>
+                <span className="text-xs text-slate-500">đang đợi khám</span>
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-amber-600 font-medium">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span>Ca tiếp theo: 10:00 (Niềng răng)</span>
+              </div>
             </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-slate-900 tracking-tight">14</span>
-            <span className="text-xs text-slate-500">hồ sơ mới</span>
-          </div>
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+8.5% so với tuần trước</span>
-          </div>
-        </div>
 
-        {/* Card 3: Ca hoàn thành */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-              Ca hoàn thành
-            </span>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5" />
+            {/* Card 3: Ca hoàn thành */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Ca đã khám xong
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-slate-900 tracking-tight">5</span>
+                <span className="text-xs text-slate-500">/ 8 ca</span>
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
+                <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="w-[62%] h-full bg-emerald-500 rounded-full"></div>
+                </div>
+                <span>Đạt 62% ca trực</span>
+              </div>
             </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-slate-900 tracking-tight">19</span>
-            <span className="text-xs text-slate-500">/ 28 ca</span>
-          </div>
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
-            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div className="w-[68%] h-full bg-emerald-500 rounded-full"></div>
-            </div>
-            <span>Đạt 68% ca khám ngày</span>
-          </div>
-        </div>
 
-        {/* Card 4: Doanh thu ước tính */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-              Doanh thu ước tính
-            </span>
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <DollarSign className="w-5 h-5" />
+            {/* Card 4: Đơn thuốc đã kê */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Đơn thuốc & Dặn dò
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <Pill className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-slate-900 tracking-tight">4</span>
+                <span className="text-xs text-slate-500">đơn thuốc lưu</span>
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-purple-600 font-medium">
+                <Check className="w-3.5 h-3.5" />
+                <span>Đã cập nhật bệnh án</span>
+              </div>
             </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-1">
-            <span className="text-2xl font-extrabold text-slate-900 tracking-tight">38.500.000</span>
-            <span className="text-xs font-semibold text-slate-600">VNĐ</span>
-          </div>
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+15.2% so với dự tính</span>
-          </div>
-        </div>
+          </>
+        ) : (
+          /* Thống kê dành cho Admin (Bao gồm Doanh thu & Toàn bộ phòng khám) */
+          <>
+            {/* Card 1: Lịch hẹn hôm nay */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Lịch hẹn hôm nay
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Calendar className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-slate-900 tracking-tight">28</span>
+                <span className="text-xs text-slate-500">cuộc hẹn</span>
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>+12% so với hôm qua</span>
+              </div>
+            </div>
+
+            {/* Card 2: Bệnh nhân mới */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Bệnh nhân mới
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
+                  <Users className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-slate-900 tracking-tight">14</span>
+                <span className="text-xs text-slate-500">hồ sơ mới</span>
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>+8.5% so với tuần trước</span>
+              </div>
+            </div>
+
+            {/* Card 3: Ca hoàn thành */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Ca hoàn thành
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-slate-900 tracking-tight">19</span>
+                <span className="text-xs text-slate-500">/ 28 ca</span>
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
+                <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="w-[68%] h-full bg-emerald-500 rounded-full"></div>
+                </div>
+                <span>Đạt 68% ca khám ngày</span>
+              </div>
+            </div>
+
+            {/* Card 4: Doanh thu ước tính */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Doanh thu ước tính
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-2xl font-extrabold text-slate-900 tracking-tight">38.500.000</span>
+                <span className="text-xs font-semibold text-slate-600">VNĐ</span>
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>+15.2% so với dự tính</span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Main Content: Bảng lịch hẹn sắp tới & Cột thông tin phụ */}
+      {/* Main Content: Bảng lịch hẹn & Cột thông tin phụ */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        {/* Nhiệm vụ 1: Bảng lịch hẹn sắp tới (Chiếm 3 cột trên màn hình lớn) */}
+        {/* Bảng lịch hẹn sắp tới (Chiếm 3 cột trên màn hình lớn) */}
         <div className="xl:col-span-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col">
           {/* Table Header with Search & Filter */}
           <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="text-base font-bold text-slate-900">
-                Lịch hẹn sắp tới (Upcoming Appointments)
+                {isDoctor ? 'Danh sách bệnh nhân trong ngày' : 'Lịch hẹn sắp tới (Upcoming Appointments)'}
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Danh sách bệnh nhân đăng ký khám trong ngày hôm nay
+                {isDoctor 
+                  ? 'Theo dõi bệnh nhân chuẩn bị đến khám và thực hiện chẩn đoán lâm sàng' 
+                  : 'Danh sách bệnh nhân đăng ký khám trong ngày hôm nay'}
               </p>
             </div>
 
@@ -333,20 +440,20 @@ const DashboardPage = () => {
                   Tất cả ({appointments.length})
                 </button>
                 <button
-                  onClick={() => setStatusFilter('PENDING')}
-                  className={`px-2.5 py-1 rounded-lg transition-colors ${
-                    statusFilter === 'PENDING' ? 'bg-white text-amber-700 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Chờ xác nhận
-                </button>
-                <button
                   onClick={() => setStatusFilter('CONFIRMED')}
                   className={`px-2.5 py-1 rounded-lg transition-colors ${
                     statusFilter === 'CONFIRMED' ? 'bg-white text-emerald-700 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   Đã duyệt
+                </button>
+                <button
+                  onClick={() => setStatusFilter('IN_PROGRESS')}
+                  className={`px-2.5 py-1 rounded-lg transition-colors ${
+                    statusFilter === 'IN_PROGRESS' ? 'bg-white text-blue-700 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Tại ghế nha
                 </button>
               </div>
             </div>
@@ -359,10 +466,10 @@ const DashboardPage = () => {
                 <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   <th className="py-3 px-4">Bệnh nhân</th>
                   <th className="py-3 px-4">Số điện thoại</th>
-                  <th className="py-3 px-4">Dịch vụ khám & Bác sĩ</th>
-                  <th className="py-3 px-4">Giờ khám</th>
+                  <th className="py-3 px-4">Dịch vụ & Phòng khám</th>
+                  <th className="py-3 px-4">Giờ hẹn</th>
                   <th className="py-3 px-4">Trạng thái</th>
-                  <th className="py-3 px-4 text-right">Thao tác</th>
+                  <th className="py-3 px-4 text-right">Thao tác lâm sàng</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
@@ -389,7 +496,7 @@ const DashboardPage = () => {
                               {apt.patientName}
                             </div>
                             <div className="text-[11px] text-slate-400 mt-0.5">
-                              {apt.patientCode} • {apt.room}
+                              {apt.patientCode} • Hồ sơ y bạ điện tử
                             </div>
                           </div>
                         </div>
@@ -403,14 +510,14 @@ const DashboardPage = () => {
                         </div>
                       </td>
 
-                      {/* Cột 3: Dịch vụ & Bác sĩ */}
+                      {/* Cột 3: Dịch vụ & Phòng khám */}
                       <td className="py-3.5 px-4">
                         <div className="font-medium text-slate-800 text-xs sm:text-sm">
                           {apt.service}
                         </div>
                         <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                          {apt.doctor}
+                          {apt.room}
                         </div>
                       </td>
 
@@ -430,29 +537,29 @@ const DashboardPage = () => {
                       {/* Cột 6: Thao tác nhanh */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="inline-flex items-center gap-1.5">
-                          {apt.status === 'PENDING' && (
-                            <button
-                              onClick={() => handleUpdateStatus(apt.id, 'CONFIRMED')}
-                              title="Duyệt lịch hẹn"
-                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-200"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                          )}
                           {apt.status === 'CONFIRMED' && (
                             <button
                               onClick={() => handleUpdateStatus(apt.id, 'IN_PROGRESS')}
-                              title="Bắt đầu khám"
-                              className="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-200 font-medium"
+                              title="Bắt đầu khám tại ghế"
+                              className="px-2.5 py-1 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 font-medium"
                             >
                               Khám ngay
                             </button>
                           )}
+                          {apt.status === 'IN_PROGRESS' && (
+                            <button
+                              onClick={() => handleUpdateStatus(apt.id, 'COMPLETED')}
+                              title="Hoàn tất ca khám"
+                              className="px-2.5 py-1 text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200 font-medium"
+                            >
+                              Hoàn thành
+                            </button>
+                          )}
                           <button
-                            title="Xem chi tiết"
+                            title="Xem chi tiết bệnh án"
                             className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                           >
-                            <MoreVertical className="w-4 h-4" />
+                            <FileText className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -465,64 +572,72 @@ const DashboardPage = () => {
 
           {/* Table Footer */}
           <div className="p-4 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
-            <span>Hiển thị {filteredAppointments.length} trên tổng số {appointments.length} lịch hẹn</span>
+            <span>Hiển thị {filteredAppointments.length} trên tổng số {appointments.length} bệnh nhân</span>
             <span className="text-[11px] text-blue-600 hover:underline cursor-pointer">
-              Xem tất cả lịch hẹn trong tháng →
+              {isDoctor ? 'Xem lịch sử điều trị trước đây →' : 'Xem báo cáo phòng khám trong tháng →'}
             </span>
           </div>
         </div>
 
-        {/* Cột phụ: Bác sĩ trực ca & Tình trạng ghế khám (Chiếm 1 cột trên màn hình lớn) */}
+        {/* Cột phụ: Bác sĩ trực ca / Ghế nha (Chiếm 1 cột trên màn hình lớn) */}
         <div className="space-y-6">
-          {/* Widget 1: Bác sĩ trực hôm nay */}
+          {/* Widget 1: Tình trạng Ghế nha & Phòng điều trị */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-blue-600" />
-                Bác sĩ trực hôm nay
+                <Stethoscope className="w-4 h-4 text-blue-600" />
+                Ghế nha & Phòng khám
               </h3>
-              <span className="text-xs text-blue-600 font-medium">3 BS</span>
+              <span className="text-xs text-emerald-600 font-medium">Hoạt động</span>
             </div>
 
-            <div className="space-y-3.5">
-              {onDutyDoctors.map((doc, index) => (
-                <div 
-                  key={index} 
-                  className="p-3 rounded-xl bg-slate-50/80 border border-slate-100 flex items-center justify-between"
-                >
-                  <div>
-                    <div className="text-xs font-semibold text-slate-800">{doc.name}</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">{doc.specialty}</div>
-                    <div className="text-[11px] text-blue-600 font-medium mt-1">
-                      {doc.patients} bệnh nhân đã xếp
-                    </div>
-                  </div>
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                    doc.status === 'Sẵn sàng' 
-                      ? 'bg-emerald-100 text-emerald-700' 
-                      : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {doc.status}
-                  </span>
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-semibold text-slate-800">Ghế nha số 1 & 2</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">Khám tổng quát & Cạo vôi</div>
                 </div>
-              ))}
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                  Sẵn sàng
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-semibold text-slate-800">Phòng phẫu thuật Piezotome</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">Nhổ răng khôn & Tiểu phẫu</div>
+                </div>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                  Đang dùng
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-semibold text-slate-800">Máy X-Quang CT Cone Beam</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">Chụp phim 3D Panorex</div>
+                </div>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                  Sẵn sàng
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Widget 2: Thông báo khẩn & Ghi chú nhanh */}
-          <div className="bg-gradient-to-br from-blue-900 to-indigo-950 p-5 rounded-2xl text-white shadow-lg shadow-blue-950/20">
-            <div className="flex items-center gap-2 text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">
-              <AlertCircle className="w-4 h-4 text-amber-400" />
-              Lưu ý vận hành
+          {/* Widget 2: Lưu ý quy chuẩn y tế */}
+          <div className="bg-gradient-to-br from-slate-900 to-blue-950 p-5 rounded-2xl text-white shadow-lg shadow-slate-950/20">
+            <div className="flex items-center gap-2 text-xs font-semibold text-cyan-300 uppercase tracking-wider mb-2">
+              <AlertCircle className="w-4 h-4 text-cyan-400" />
+              Quy chuẩn vô trùng y tế
             </div>
             <h4 className="text-sm font-bold text-white mb-1.5">
-              Bảo trì máy chụp X-quang CT 3D
+              Khử khuẩn dụng cụ autoclave
             </h4>
             <p className="text-xs text-slate-300 leading-relaxed mb-4">
-              Khung giờ 12:00 - 13:30 tiến hành kiểm định kỹ thuật định kỳ máy CT Cone Beam. Vui lòng sắp xếp ca Implant sau 14h.
+              Mỗi ca điều trị bắt buộc sử dụng 1 bộ khay khám riêng biệt đã qua máy sấy hấp sấy vô trùng 134°C và đóng gói niêm phong.
             </p>
-            <div className="text-[11px] text-blue-300/80 border-t border-white/10 pt-3">
-              Cập nhật bởi: Ban Quản lý Phòng khám
+            <div className="text-[11px] text-cyan-300/80 border-t border-white/10 pt-3">
+              Ban Kiểm Soát Nhiễm Khuẩn ZenBooking
             </div>
           </div>
         </div>

@@ -34,8 +34,8 @@ function App() {
           </Route>
         </Route>
 
-        {/* 3. Protected Routes cho Quản trị viên (ROLE_ADMIN) */}
-        <Route element={<ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ADMIN']} />}>
+        {/* 3. Protected Routes cho Nhân viên phòng khám (ROLE_ADMIN, ROLE_DOCTOR) */}
+        <Route element={<ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ADMIN', 'ROLE_DOCTOR', 'DOCTOR']} />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<DashboardPage />} />
           </Route>

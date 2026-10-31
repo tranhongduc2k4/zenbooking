@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dentalServiceApi } from '../../services/dentalServiceApi';
+import { appointmentApi } from '../../services/appointmentApi';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
@@ -59,6 +60,8 @@ const BookingPage = () => {
   const [note, setNote] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formError, setFormError] = useState('');
+  const [bookingResult, setBookingResult] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Tải danh mục dịch vụ điều trị từ Backend API
   useEffect(() => {
@@ -114,7 +117,7 @@ const BookingPage = () => {
   const currentService = services.find((s) => s.id === selectedService) || services[0];
   const currentDoctor = doctors.find((d) => d.id === selectedDoctor) || doctors[0];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!patientName.trim() || !patientPhone.trim()) {
       setFormError('Vui lòng nhập đầy đủ Họ tên và Số điện thoại liên hệ!');
@@ -122,18 +125,33 @@ const BookingPage = () => {
     }
     setFormError('');
 
-    const bookingPayload = {
-      service: currentService.name,
-      doctor: currentDoctor.name,
-      date: bookingDate,
-      time: selectedTimeSlot,
-      patientName,
-      patientPhone,
-      note,
-    };
+    try {
+      setIsSubmitting(true);
+      const parsedServiceId = Number(selectedService);
+      const bookingPayload = {
+        serviceId: !isNaN(parsedServiceId) ? parsedServiceId : null,
+        serviceName: currentService.name,
+        doctorId: null,
+        doctorName: currentDoctor.name,
+        appointmentDate: bookingDate,
+        appointmentTime: selectedTimeSlot,
+        patientName: patientName.trim(),
+        patientPhone: patientPhone.trim(),
+        notes: note ? note.trim() : null,
+      };
 
-    console.log('Xác nhận đặt lịch khám:', bookingPayload);
-    setIsSubmitted(true);
+      const res = await appointmentApi.bookAppointment(bookingPayload);
+      if (res && res.data) {
+        setBookingResult(res.data);
+        setIsSubmitted(true);
+      }
+    } catch (err) {
+      console.error('Lỗi khi gửi yêu cầu đặt lịch:', err);
+      const msg = err.response?.data?.message || 'Có lỗi xảy ra khi đặt lịch khám. Vui lòng thử lại!';
+      setFormError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -195,7 +213,7 @@ const BookingPage = () => {
           <div className="bg-slate-50/80 rounded-2xl p-5 text-left space-y-3 text-xs sm:text-sm text-slate-700 border border-slate-200/80">
             <div className="flex justify-between items-center pb-2 border-b border-slate-200">
               <span className="font-semibold text-slate-900">Mã phiếu hẹn:</span>
-              <span className="font-mono font-bold text-blue-600">ZB-AP-8924</span>
+              <span className="font-mono font-bold text-blue-600">{bookingResult?.appointmentCode || "ZB-AP-8924"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Dịch vụ điều trị:</span>

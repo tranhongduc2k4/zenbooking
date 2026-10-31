@@ -68,8 +68,12 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers("/api/v1/services/admin/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/appointments").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/services/**").permitAll()
+                        .requestMatchers("/api/v1/services/admin/**").authenticated()
+                        .requestMatchers("/api/v1/appointments/admin/**").authenticated()
+                        .requestMatchers("/api/v1/appointments/my-appointments").authenticated()
+                        .requestMatchers("/api/v1/appointments/*/cancel").authenticated()
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())

@@ -8,6 +8,7 @@ import PatientDashboard from './pages/patient/PatientDashboard';
 import BookingPage from './pages/patient/BookingPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import ServicesManagementPage from './pages/admin/ServicesManagementPage';
+import AppointmentsManagementPage from './pages/admin/AppointmentsManagementPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import UnauthorizedPage from './pages/error/UnauthorizedPage';
@@ -39,6 +40,7 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ADMIN', 'ROLE_DOCTOR', 'DOCTOR']} />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<DashboardPage />} />
+            <Route path="appointments" element={<AppointmentsManagementPage />} />
             <Route path="services" element={<ServicesManagementPage />} />
           </Route>
         </Route>

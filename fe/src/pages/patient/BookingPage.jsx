@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { dentalServiceApi } from '../../services/dentalServiceApi';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
@@ -22,14 +23,14 @@ const BookingPage = () => {
   const navigate = useNavigate();
 
   // Danh mục dịch vụ
-  const services = [
-    { id: 'general', name: 'Khám tổng quát & Tư vấn', price: 'Miễn phí', time: '20 phút', icon: '🩺' },
-    { id: 'scaling', name: 'Cạo vôi & Đánh bóng siêu âm', price: '200.000đ', time: '30 phút', icon: '✨' },
-    { id: 'whitening', name: 'Tẩy trắng răng Laser Whitening', price: '1.500.000đ', time: '45 phút', icon: '💎' },
-    { id: 'wisdom_tooth', name: 'Nhổ răng khôn không đau Piezotome', price: '1.000.000đ', time: '30 phút', icon: '🦷' },
-    { id: 'braces', name: 'Niềng răng mắc cài / Khay trong suốt', price: 'Từ 18.000.000đ', time: '45 phút', icon: '😁' },
-    { id: 'implant', name: 'Cấy ghép Implant thẩm mỹ', price: 'Từ 12.000.000đ', time: '60 phút', icon: '🔩' },
-  ];
+  const DEFAULT_SERVICES = [
+  { id: '1', name: 'Khám tổng quát & Tư vấn', price: 'Miễn phí', time: '20 phút', icon: '🩺' },
+  { id: '2', name: 'Cạo vôi & Đánh bóng siêu âm', price: '200.000đ', time: '30 phút', icon: '✨' },
+  { id: '3', name: 'Tẩy trắng răng Laser Whitening', price: '1.500.000đ', time: '45 phút', icon: '💎' },
+  { id: '4', name: 'Nhổ răng khôn không đau Piezotome', price: '1.000.000đ', time: '30 phút', icon: '🦷' },
+  { id: '5', name: 'Niềng răng mắc cài / Khay trong suốt', price: 'Từ 18.000.000đ', time: '45 phút', icon: '😁' },
+  { id: '6', name: 'Cấy ghép Implant thẩm mỹ', price: 'Từ 12.000.000đ', time: '60 phút', icon: '🔩' },
+];
 
   // Danh sách bác sĩ
   const doctors = [
@@ -44,7 +45,9 @@ const BookingPage = () => {
   const afternoonSlots = ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '18:00', '19:00'];
 
   // State quản lý toàn bộ dữ liệu form
-  const [selectedService, setSelectedService] = useState(services[0].id);
+  const [services, setServices] = useState(DEFAULT_SERVICES);
+  const [selectedService, setSelectedService] = useState('1');
+  const [loadingServices, setLoadingServices] = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState(doctors[0].id);
   const [bookingDate, setBookingDate] = useState(() => {
     const today = new Date();
@@ -56,6 +59,34 @@ const BookingPage = () => {
   const [note, setNote] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formError, setFormError] = useState('');
+
+    // Tải danh mục dịch vụ điều trị từ Backend API
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setLoadingServices(true);
+        const res = await dentalServiceApi.getActiveServices();
+        if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+          const mapped = res.data.map((item) => ({
+            id: String(item.id),
+            name: item.name,
+            price: Number(item.price) === 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN').format(item.price) + 'đ',
+            time: `${item.estimatedDurationMinutes} phút`,
+            icon: item.icon || '🦷',
+            category: item.category,
+            description: item.description,
+          }));
+          setServices(mapped);
+          setSelectedService(mapped[0].id);
+        }
+      } catch (err) {
+        console.warn('Không thể tải dịch vụ động từ server, dùng danh mục dự phòng:', err);
+      } finally {
+        setLoadingServices(false);
+      }
+    };
+    fetchServices();
+  }, []);
 
   // Tự động điền thông tin bệnh nhân từ tài khoản đã đăng nhập
   useEffect(() => {

@@ -59,9 +59,8 @@ const PatientDashboard = () => {
     try {
       setLoading(true);
       const res = await appointmentApi.getMyAppointments();
-      if (res && res.data) {
-        setMyAppointments(res.data);
-      }
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      setMyAppointments(list);
     } catch (err) {
       console.warn('Lỗi khi nạp lịch hẹn của tôi:', err);
     } finally {

@@ -63,11 +63,12 @@ const AppointmentsManagementPage = () => {
         appointmentApi.getAppointmentStats()
       ]);
 
-      if (listRes && listRes.data) {
-        setAppointments(listRes.data);
-      }
-      if (statsRes && statsRes.data) {
-        setStats(statsRes.data);
+      const list = Array.isArray(listRes) ? listRes : (listRes?.data || []);
+      setAppointments(list);
+
+      const statsData = statsRes?.data || statsRes;
+      if (statsData) {
+        setStats(statsData);
       }
     } catch (err) {
       console.error('Lỗi khi nạp dữ liệu lịch hẹn:', err);
@@ -657,3 +658,4 @@ const AppointmentsManagementPage = () => {
 };
 
 export default AppointmentsManagementPage;
+

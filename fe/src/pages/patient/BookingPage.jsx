@@ -69,8 +69,9 @@ const BookingPage = () => {
       try {
         setLoadingServices(true);
         const res = await dentalServiceApi.getActiveServices();
-        if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-          const mapped = res.data.map((item) => ({
+        const dataList = Array.isArray(res) ? res : (res?.data || []);
+        if (dataList && dataList.length > 0) {
+          const mapped = dataList.map((item) => ({
             id: String(item.id),
             name: item.name,
             price: Number(item.price) === 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN').format(item.price) + 'đ',
@@ -140,10 +141,16 @@ const BookingPage = () => {
         notes: note ? note.trim() : null,
       };
 
+      console.log('Đang gửi yêu cầu đặt lịch tới backend:', bookingPayload);
       const res = await appointmentApi.bookAppointment(bookingPayload);
-      if (res && res.data) {
-        setBookingResult(res.data);
+      console.log('Backend phản hồi thành công:', res);
+
+      const result = res?.data || res;
+      if (result && (result.id || result.appointmentCode)) {
+        setBookingResult(result);
         setIsSubmitted(true);
+      } else {
+        setFormError('Không nhận được mã xác nhận lịch khám từ máy chủ.');
       }
     } catch (err) {
       console.error('Lỗi khi gửi yêu cầu đặt lịch:', err);

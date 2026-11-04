@@ -2,13 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, 
-  Stethoscope, 
-  ShieldAlert, 
-  Check, 
   LogOut, 
   ChevronDown, 
   RefreshCw,
-  Sparkles,
   UserPlus,
   Lock,
   Eye,
@@ -19,46 +15,8 @@ import {
 } from 'lucide-react';
 import authApi from '../services/authApi';
 
-// Danh sách các tài khoản chuyển đổi nhanh có sẵn
-const PRESET_ACCOUNTS = [
-  {
-    role: 'PATIENT',
-    label: 'Bệnh nhân',
-    name: 'Trần Hồng Đức',
-    identifier: '0792275635_demo',
-    password: 'password123',
-    badge: 'Bệnh nhân thân thiết',
-    icon: User,
-    color: 'from-blue-500 to-indigo-600',
-    tagColor: 'bg-blue-50 text-blue-700 border-blue-200'
-  },
-  {
-    role: 'DOCTOR',
-    label: 'Bác sĩ điều trị',
-    name: 'BS. Trần Minh Tuấn',
-    identifier: '0901234567',
-    password: 'password123',
-    badge: 'Chuyên khoa Nha Chu',
-    icon: Stethoscope,
-    color: 'from-teal-500 to-cyan-600',
-    tagColor: 'bg-teal-50 text-teal-700 border-teal-200'
-  },
-  {
-    role: 'ADMIN',
-    label: 'Quản trị viên',
-    name: 'Admin Quản Trị Viên',
-    identifier: '0909999888',
-    password: 'password123',
-    badge: 'Quản lý phòng khám',
-    icon: ShieldAlert,
-    color: 'from-purple-500 to-indigo-700',
-    tagColor: 'bg-purple-50 text-purple-700 border-purple-200'
-  }
-];
-
 const UserAccountDropdown = ({ currentUser, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isSwitching, setIsSwitching] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
@@ -99,38 +57,7 @@ const UserAccountDropdown = ({ currentUser, onLogout }) => {
     ? 'Quản trị viên' 
     : 'Bệnh nhân thân thiết';
 
-  // Chuyển đổi nhanh giữa các tài khoản Preset
-  const handleSwitch = async (account) => {
-    try {
-      setIsSwitching(true);
-      const res = await authApi.login({
-        identifier: account.identifier,
-        password: account.password,
-      });
-
-      if (res && res.token) {
-        localStorage.setItem('access_token', res.token);
-        localStorage.setItem('user_role', res.role);
-        localStorage.setItem('user', JSON.stringify(res));
-
-        setIsOpen(false);
-
-        if (res.role === 'ROLE_ADMIN' || res.role === 'ADMIN' || res.role === 'ROLE_DOCTOR' || res.role === 'DOCTOR') {
-          navigate('/admin');
-        } else {
-          navigate('/patient-home');
-        }
-        window.location.reload();
-      }
-    } catch (err) {
-      console.error('Lỗi khi chuyển đổi tài khoản:', err);
-      alert('Không thể chuyển đổi tài khoản: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setIsSwitching(false);
-    }
-  };
-
-  // Xử lý đăng nhập từ Modal Thêm tài khoản mới
+  // Xử lý đăng nhập từ Modal Thêm tài khoản
   const handleAddAccountSubmit = async (e) => {
     e.preventDefault();
     if (!addAccountData.identifier.trim() || !addAccountData.password) {
@@ -205,7 +132,7 @@ const UserAccountDropdown = ({ currentUser, onLogout }) => {
         {/* Dropdown Menu */}
         {isOpen && (
           <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-2.5 z-50 animate-scaleUp">
-            {/* Header Thông tin tài khoản hiện tại */}
+            {/* Header: Thông tin tài khoản đang đăng nhập */}
             <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-xs bg-gradient-to-tr ${
                 isDoctorRole 
@@ -230,60 +157,8 @@ const UserAccountDropdown = ({ currentUser, onLogout }) => {
               </div>
             </div>
 
-            {/* Section: Chuyển đổi tài khoản (Switch) */}
+            {/* Section: Thêm tài khoản */}
             <div className="p-2 space-y-1">
-              <div className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-                <span>Chuyển đổi tài khoản</span>
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              </div>
-
-              {PRESET_ACCOUNTS.map((acc) => {
-                const Icon = acc.icon;
-                const isCurrent = (
-                  (acc.role === 'PATIENT' && !isDoctorRole && !isAdminRole) ||
-                  (acc.role === 'DOCTOR' && isDoctorRole) ||
-                  (acc.role === 'ADMIN' && isAdminRole)
-                );
-
-                return (
-                  <button
-                    key={acc.role}
-                    type="button"
-                    disabled={isSwitching || isCurrent}
-                    onClick={() => handleSwitch(acc)}
-                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-colors cursor-pointer ${
-                      isCurrent
-                        ? 'bg-slate-50 border border-slate-200/80 cursor-default'
-                        : 'hover:bg-slate-100/80 active:bg-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 bg-gradient-to-tr ${acc.color}`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                          <span className="truncate">{acc.name}</span>
-                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-medium border ${acc.tagColor}`}>
-                            {acc.label}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-400 truncate">
-                          {acc.badge}
-                        </div>
-                      </div>
-                    </div>
-
-                    {isCurrent && (
-                      <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                        <Check className="w-3 h-3 stroke-[2.5]" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-
-              {/* Nút THÊM TÀI KHOẢN KHÁC (Mở Modal Login) */}
               <button
                 type="button"
                 onClick={() => {
@@ -292,7 +167,7 @@ const UserAccountDropdown = ({ currentUser, onLogout }) => {
                   setAddAccountData({ identifier: '', password: '' });
                   setShowAddAccountModal(true);
                 }}
-                className="w-full flex items-center gap-2.5 p-2.5 rounded-xl text-left text-blue-600 hover:bg-blue-50/80 active:bg-blue-100/80 transition-colors cursor-pointer border border-dashed border-blue-200 mt-1"
+                className="w-full flex items-center gap-2.5 p-2.5 rounded-xl text-left text-blue-600 hover:bg-blue-50/80 active:bg-blue-100/80 transition-colors cursor-pointer border border-dashed border-blue-200"
               >
                 <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
                   <UserPlus className="w-4 h-4" />
@@ -302,19 +177,11 @@ const UserAccountDropdown = ({ currentUser, onLogout }) => {
                     + Thêm tài khoản khác
                   </div>
                   <div className="text-[11px] text-blue-500">
-                    Đăng nhập tài khoản mới vào thiết bị
+                    Đăng nhập tài khoản Bác sĩ, Admin, Bệnh nhân
                   </div>
                 </div>
               </button>
             </div>
-
-            {/* Loading indicator khi chuyển đổi */}
-            {isSwitching && (
-              <div className="px-4 py-2 bg-blue-50 text-blue-700 text-xs font-medium flex items-center justify-center gap-2">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Đang chuyển quyền đăng nhập...</span>
-              </div>
-            )}
 
             {/* Footer: Đăng xuất */}
             <div className="pt-2 px-2 border-t border-slate-100">
@@ -353,7 +220,7 @@ const UserAccountDropdown = ({ currentUser, onLogout }) => {
               </div>
               <h3 className="text-xl font-bold tracking-tight">Thêm tài khoản</h3>
               <p className="text-xs text-blue-100 mt-1">
-                Đăng nhập tài khoản Bác sĩ, Admin hoặc Bệnh nhân khác vào phiên làm việc.
+                Đăng nhập tài khoản Bác sĩ, Quản trị viên hoặc Bệnh nhân khác.
               </p>
             </div>
 

@@ -15,8 +15,8 @@ import {
   X, 
   PlusCircle, 
   ExternalLink,
-  ChevronDown,
 } from 'lucide-react';
+import UserAccountDropdown from '../components/UserAccountDropdown';
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -149,6 +149,7 @@ const AdminLayout = () => {
             </div>
           </Link>
           <button 
+            type="button"
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
           >
@@ -224,9 +225,10 @@ const AdminLayout = () => {
               </div>
             </div>
             <button 
+              type="button"
               onClick={handleLogout}
               title="Đăng xuất"
-              className="p-1.5 text-slate-500 hover:text-red-400 rounded-lg hover:bg-white/5 transition-colors shrink-0"
+              className="p-1.5 text-slate-500 hover:text-red-400 rounded-lg hover:bg-white/5 transition-colors shrink-0 cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>
@@ -240,8 +242,10 @@ const AdminLayout = () => {
         <header className="sticky top-0 z-30 h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+              className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors cursor-pointer"
+              aria-label="Mở menu"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -254,10 +258,10 @@ const AdminLayout = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {/* Quick Search */}
             <div className="relative hidden md:block">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder={isDoctor ? "Tìm bệnh nhân..." : "Tìm bệnh nhân, mã hẹn..."}
@@ -268,7 +272,7 @@ const AdminLayout = () => {
             {/* New Appointment CTA */}
             <Link
               to="/admin/appointments"
-              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95"
+              className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95"
             >
               <PlusCircle className="w-4 h-4" />
               Tạo lịch hẹn
@@ -276,8 +280,9 @@ const AdminLayout = () => {
 
             {/* Notifications */}
             <button 
+              type="button"
               title="Thông báo"
-              className="relative p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+              className="relative p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
             >
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
@@ -285,23 +290,8 @@ const AdminLayout = () => {
 
             <div className="h-5 w-px bg-slate-200" />
 
-            {/* Profile */}
-            <div className="flex items-center gap-2.5 cursor-pointer group">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                isDoctor ? 'bg-teal-100 text-teal-700' : 'bg-blue-100 text-blue-700'
-              }`}>
-                {getInitials(currentUser?.fullName)}
-              </div>
-              <div className="hidden sm:block text-left">
-                <span className="block text-xs font-semibold text-slate-700 leading-tight">
-                  {currentUser?.fullName || (isDoctor ? 'Bác sĩ' : 'Admin')}
-                </span>
-                <span className="block text-[10px] text-slate-400">
-                  {isDoctor ? 'Khoa Răng Hàm Mặt' : 'Quản lý'}
-                </span>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block group-hover:text-slate-600 transition-colors" />
-            </div>
+            {/* Profile Avatar Pill with Switch Account Dropdown */}
+            <UserAccountDropdown currentUser={currentUser} onLogout={handleLogout} />
           </div>
         </header>
 

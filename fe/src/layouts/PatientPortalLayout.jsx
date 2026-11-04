@@ -9,9 +9,9 @@ import {
   Bell, 
   Menu, 
   X, 
-  ChevronDown,
   PhoneCall
 } from 'lucide-react';
+import UserAccountDropdown from '../components/UserAccountDropdown';
 
 const PatientPortalLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -220,19 +220,8 @@ const PatientPortalLayout = () => {
 
             <div className="h-5 w-px bg-slate-200 hidden sm:block" />
 
-            {/* Profile Avatar Pill */}
-            <div className="flex items-center gap-2.5 cursor-pointer group py-1">
-              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs ring-2 ring-blue-50">
-                {getInitials(currentUser?.fullName)}
-              </div>
-              <div className="hidden xl:block text-left">
-                <span className="block text-[13px] font-semibold text-slate-800 leading-tight">
-                  {currentUser?.fullName || 'Bệnh nhân'}
-                </span>
-                <span className="block text-[11px] text-slate-500 font-medium">Bệnh nhân thân thiết</span>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden xl:block group-hover:text-slate-600 transition-colors" />
-            </div>
+            {/* Profile Avatar Pill with Switch Account Dropdown */}
+            <UserAccountDropdown currentUser={currentUser} onLogout={handleLogout} />
           </div>
         </header>
 

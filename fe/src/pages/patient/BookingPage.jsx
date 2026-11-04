@@ -11,14 +11,13 @@ import {
   CheckCircle2, 
   AlertCircle, 
   Sparkles, 
-  ChevronRight,
-  ShieldCheck,
-  ArrowLeft,
-  CalendarPlus,
-  RefreshCw,
+  ChevronRight, 
+  ShieldCheck, 
+  ArrowLeft, 
+  CalendarPlus, 
+  RefreshCw, 
   Info,
-  Tag,
-  Star
+  AlertTriangle
 } from 'lucide-react';
 
 const BookingPage = () => {
@@ -42,17 +41,26 @@ const BookingPage = () => {
     { id: 'dr_hung', name: 'BS. Nguyễn Văn Hùng', specialty: 'Cấy ghép Implant · 8 năm KN', available: true },
   ];
 
-  // Khung giờ
-  const morningSlots = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00'];
-  const afternoonSlots = ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '18:00', '19:00'];
+  // Khung giờ khám mẫu
+  const allMorningSlots = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00'];
+  const allAfternoonSlots = ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '18:00', '19:00'];
+
+  // Helper tính ngày hôm nay theo giờ địa phương YYYY-MM-DD
+  const getTodayDateString = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   // State
   const [services, setServices] = useState(DEFAULT_SERVICES);
   const [selectedService, setSelectedService] = useState('1');
   const [loadingServices, setLoadingServices] = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState('any');
-  const [bookingDate, setBookingDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState('09:00');
+  const [bookingDate, setBookingDate] = useState(getTodayDateString());
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
   const [patientName, setPatientName] = useState('');
   const [patientPhone, setPatientPhone] = useState('');
   const [note, setNote] = useState('');
@@ -61,7 +69,39 @@ const BookingPage = () => {
   const [bookingResult, setBookingResult] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Tải dịch vụ từ API
+  /**
+   * Kiểm tra khung giờ có hợp lệ không:
+   * 1. Thời gian đặt phải > thời gian hiện tại
+   * 2. Phải cách thời điểm hiện tại ít nhất 2 tiếng (120 phút)
+   */
+  const isSlotValid = (slotTime, dateStr) => {
+    if (!slotTime || !dateStr) return false;
+    const [hours, minutes] = slotTime.split(':').map(Number);
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const slotDate = new Date(year, month - 1, day, hours, minutes, 0);
+
+    const now = new Date();
+    // Yêu cầu: thời gian khám > thời gian hiện tại + 2 giờ
+    const minimumAllowedDate = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+    return slotDate > minimumAllowedDate;
+  };
+
+  // Tự động chọn khung giờ hợp lệ đầu tiên khi ngày thay đổi
+  useEffect(() => {
+    const allSlots = [...allMorningSlots, ...allAfternoonSlots];
+    const availableSlots = allSlots.filter((slot) => isSlotValid(slot, bookingDate));
+
+    if (availableSlots.length > 0) {
+      if (!availableSlots.includes(selectedTimeSlot)) {
+        setSelectedTimeSlot(availableSlots[0]);
+      }
+    } else {
+      setSelectedTimeSlot('');
+    }
+  }, [bookingDate]);
+
+  // Tải danh mục dịch vụ từ Backend API
   useEffect(() => {
     const fetchServices = async () => {
       try {
@@ -90,7 +130,7 @@ const BookingPage = () => {
     fetchServices();
   }, []);
 
-  // Auto-fill thông tin từ tài khoản đăng nhập
+  // Tự động điền thông tin người dùng đã đăng nhập
   useEffect(() => {
     try {
       const stored = localStorage.getItem('user');
@@ -113,6 +153,18 @@ const BookingPage = () => {
       setFormError('Vui lòng nhập đầy đủ Họ tên và Số điện thoại liên hệ!');
       return;
     }
+
+    if (!selectedTimeSlot) {
+      setFormError('Ngày bạn chọn hiện không còn khung giờ hợp lệ (phải đặt trước giờ khám tối thiểu 2 tiếng). Vui lòng chọn ngày khác!');
+      return;
+    }
+
+    // Kiểm tra lại tính hợp lệ trước khi gửi
+    if (!isSlotValid(selectedTimeSlot, bookingDate)) {
+      setFormError('Khung giờ này đã quá hạn hoặc không đủ thời gian chuẩn bị tối thiểu 2 giờ. Vui lòng chọn khung giờ khác!');
+      return;
+    }
+
     setFormError('');
     try {
       setIsSubmitting(true);
@@ -128,6 +180,7 @@ const BookingPage = () => {
         patientPhone: patientPhone.trim(),
         notes: note ? note.trim() : null,
       };
+
       const res = await appointmentApi.bookAppointment(bookingPayload);
       const result = res?.data || res;
       if (result && (result.id || result.appointmentCode)) {
@@ -144,45 +197,41 @@ const BookingPage = () => {
     }
   };
 
-  // Màn hình thành công
+  // Màn hình hiển thị khi đặt lịch thành công
   if (isSubmitted) {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Page header */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
             <CheckCircle2 className="w-5 h-5 text-emerald-600" />
           </div>
           <div>
             <h1 className="text-lg font-bold text-slate-900">Đặt lịch thành công!</h1>
-            <p className="text-xs text-slate-500">Hệ thống đã tiếp nhận lịch hẹn của bạn</p>
+            <p className="text-xs text-slate-500">Hệ thống đã tiếp nhận phiếu hẹn của bạn</p>
           </div>
         </div>
 
-        {/* Success card */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="bg-gradient-to-r from-emerald-500 to-teal-500 p-6 text-white text-center">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-6 text-white text-center">
             <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <CheckCircle2 className="w-9 h-9" />
             </div>
             <h2 className="text-xl font-bold mb-1">Lịch hẹn đã được ghi nhận</h2>
             <p className="text-emerald-100 text-sm">
-              Tin nhắn SMS xác nhận sẽ gửi tới <strong className="text-white">{patientPhone}</strong>
+              Tin nhắn SMS xác nhận sẽ được gửi tới số <strong className="text-white">{patientPhone}</strong>
             </p>
           </div>
 
           <div className="p-6 space-y-4">
-            {/* Mã phiếu hẹn */}
             <div className="flex items-center justify-center gap-3 py-3 bg-blue-50 rounded-xl border border-blue-100">
               <div>
-                <p className="text-xs text-blue-600 font-medium text-center">Mã phiếu hẹn của bạn</p>
+                <p className="text-xs text-blue-600 font-medium text-center">Mã phiếu hẹn khám</p>
                 <p className="text-2xl font-mono font-extrabold text-blue-700 text-center">
                   {bookingResult?.appointmentCode || 'ZB-AP-XXXX'}
                 </p>
               </div>
             </div>
 
-            {/* Chi tiết */}
             <div className="space-y-3 text-sm">
               {[
                 { label: 'Dịch vụ điều trị', value: currentService?.name },
@@ -192,7 +241,7 @@ const BookingPage = () => {
               ].map(({ label, value, highlight, green }) => (
                 <div key={label} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0">
                   <span className="text-slate-500 text-xs">{label}:</span>
-                  <span className={`font-semibold text-right max-w-[55%] ${highlight ? 'text-blue-700' : green ? 'text-emerald-600' : 'text-slate-900'}`}>
+                  <span className={`font-semibold text-right max-w-[55%] ${highlight ? 'text-blue-700 font-mono' : green ? 'text-emerald-600 font-mono' : 'text-slate-900'}`}>
                     {value}
                   </span>
                 </div>
@@ -202,16 +251,16 @@ const BookingPage = () => {
             <div className="flex gap-3 pt-2">
               <Link
                 to="/patient-home"
-                className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white text-sm font-semibold text-center hover:bg-blue-700 transition-all shadow-sm shadow-blue-500/20"
+                className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white text-sm font-semibold text-center hover:bg-blue-700 transition-all shadow-xs"
               >
-                Xem Bảng điều khiển
+                Về Bảng điều khiển
               </Link>
               <button
                 type="button"
                 onClick={() => setIsSubmitted(false)}
                 className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all"
               >
-                Đặt thêm lịch
+                Đặt thêm ca khác
               </button>
             </div>
           </div>
@@ -223,14 +272,14 @@ const BookingPage = () => {
   return (
     <div className="space-y-5 max-w-7xl mx-auto">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 mb-1">
             <Sparkles className="w-3.5 h-3.5" />
             ZenBooking Dental · Đặt lịch khám trực tuyến
           </div>
-          <h1 className="text-xl font-bold text-slate-900">Đặt Lịch Khám Nha Khoa</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Chọn bác sĩ, dịch vụ và khung giờ phù hợp với bạn</p>
+          <h1 className="text-xl font-bold text-slate-900">Đặt Lịch Khám & Tư Vấn</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Thời gian khám linh hoạt, đặt trước tối thiểu 2 giờ để tiếp đón tốt nhất</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Link
@@ -247,7 +296,7 @@ const BookingPage = () => {
         </div>
       </div>
 
-      {/* Error */}
+      {/* Thông báo lỗi nếu có */}
       {formError && (
         <div className="p-4 rounded-2xl bg-red-50 border border-red-200 flex items-center gap-3 text-sm text-red-700">
           <AlertCircle className="w-5 h-5 shrink-0 text-red-500" />
@@ -255,15 +304,15 @@ const BookingPage = () => {
         </div>
       )}
 
-      {/* Form Layout */}
+      {/* Form Đặt lịch */}
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           
-          {/* Cột trái: Form steps */}
+          {/* CỘT TRÁI: CÁC BƯỚC ĐIỀN FORM (8 Cols) */}
           <div className="lg:col-span-8 space-y-5">
 
             {/* BƯỚC 1: Chọn dịch vụ */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
                 <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold text-sm flex items-center justify-center">1</div>
                 <div>
@@ -281,7 +330,7 @@ const BookingPage = () => {
                       onClick={() => setSelectedService(item.id)}
                       className={`cursor-pointer rounded-xl border p-4 transition-all relative group ${
                         isSelected
-                          ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-400/50 shadow-sm'
+                          ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-400/50 shadow-xs'
                           : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
                       }`}
                     >
@@ -302,7 +351,6 @@ const BookingPage = () => {
                           </div>
                         </div>
                       </div>
-                      {/* Radio */}
                       <div className={`absolute top-4 right-4 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
                         isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300 group-hover:border-slate-400'
                       }`}>
@@ -315,12 +363,12 @@ const BookingPage = () => {
             </div>
 
             {/* BƯỚC 2: Chọn bác sĩ */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
                 <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold text-sm flex items-center justify-center">2</div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900">Chọn bác sĩ khám</h2>
-                  <p className="text-xs text-slate-400">Tùy chọn - hệ thống tự phân công nếu để trống</p>
+                  <h2 className="text-sm font-bold text-slate-900">Chọn bác sĩ khám (Tùy chọn)</h2>
+                  <p className="text-xs text-slate-400">Đội ngũ bác sĩ chuyên khoa giàu kinh nghiệm</p>
                 </div>
               </div>
               <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -332,7 +380,7 @@ const BookingPage = () => {
                       onClick={() => setSelectedDoctor(doc.id)}
                       className={`cursor-pointer rounded-xl border p-4 transition-all ${
                         isSelected
-                          ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-400/50 shadow-sm'
+                          ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-400/50 shadow-xs'
                           : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
                       }`}
                     >
@@ -356,15 +404,22 @@ const BookingPage = () => {
               </div>
             </div>
 
-            {/* BƯỚC 3: Chọn ngày & giờ */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold text-sm flex items-center justify-center">3</div>
-                <div>
-                  <h2 className="text-sm font-bold text-slate-900">Chọn ngày & Giờ khám</h2>
-                  <p className="text-xs text-slate-400">Phòng khám hoạt động 08:00 - 20:00 hàng ngày</p>
+            {/* BƯỚC 3: Chọn ngày & giờ khám (CÓ VALIDATION TRƯỚC 2 GIỜ) */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold text-sm flex items-center justify-center">3</div>
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-900">Chọn ngày & Giờ khám</h2>
+                    <p className="text-xs text-slate-400">Yêu cầu đặt trước tối thiểu 2 giờ so với thời điểm hiện tại</p>
+                  </div>
+                </div>
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200/80">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>Cách hiện tại ≥ 2h</span>
                 </div>
               </div>
+
               <div className="p-5 space-y-5">
                 {/* Chọn ngày */}
                 <div>
@@ -374,7 +429,7 @@ const BookingPage = () => {
                     <input
                       type="date"
                       value={bookingDate}
-                      min={new Date().toISOString().split('T')[0]}
+                      min={getTodayDateString()}
                       onChange={(e) => setBookingDate(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all"
                     />
@@ -385,17 +440,22 @@ const BookingPage = () => {
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-2">🌅 Buổi sáng (08:00 - 11:30):</label>
                   <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                    {morningSlots.map((slot) => {
+                    {allMorningSlots.map((slot) => {
+                      const valid = isSlotValid(slot, bookingDate);
                       const isSelected = selectedTimeSlot === slot;
                       return (
                         <button
                           type="button"
                           key={slot}
+                          disabled={!valid}
                           onClick={() => setSelectedTimeSlot(slot)}
+                          title={!valid ? 'Khung giờ này đã qua hoặc không đủ trước 2 tiếng' : `Chọn giờ ${slot}`}
                           className={`py-2 text-center font-mono text-xs font-semibold rounded-xl border transition-all ${
-                            isSelected
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/30'
-                              : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
+                            !valid
+                              ? 'bg-slate-100 text-slate-300 border-slate-100 cursor-not-allowed line-through'
+                              : isSelected
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer'
                           }`}
                         >
                           {slot}
@@ -409,17 +469,22 @@ const BookingPage = () => {
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-2">🌆 Buổi chiều & Tối (14:00 - 20:00):</label>
                   <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2">
-                    {afternoonSlots.map((slot) => {
+                    {allAfternoonSlots.map((slot) => {
+                      const valid = isSlotValid(slot, bookingDate);
                       const isSelected = selectedTimeSlot === slot;
                       return (
                         <button
                           type="button"
                           key={slot}
+                          disabled={!valid}
                           onClick={() => setSelectedTimeSlot(slot)}
+                          title={!valid ? 'Khung giờ này đã qua hoặc không đủ trước 2 tiếng' : `Chọn giờ ${slot}`}
                           className={`py-2 text-center font-mono text-xs font-semibold rounded-xl border transition-all ${
-                            isSelected
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/30'
-                              : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
+                            !valid
+                              ? 'bg-slate-100 text-slate-300 border-slate-100 cursor-not-allowed line-through'
+                              : isSelected
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer'
                           }`}
                         >
                           {slot}
@@ -428,16 +493,22 @@ const BookingPage = () => {
                     })}
                   </div>
                 </div>
+
+                {/* Ghi chú giải thích */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-500 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-blue-500 shrink-0" />
+                  <span>Các khung giờ bị gạch ngang là khung giờ đã qua trong ngày hoặc không đủ điều kiện đặt trước 2 tiếng.</span>
+                </div>
               </div>
             </div>
 
-            {/* BƯỚC 4: Thông tin bệnh nhân */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            {/* BƯỚC 4: Thông tin liên hệ */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
                 <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold text-sm flex items-center justify-center">4</div>
                 <div>
                   <h2 className="text-sm font-bold text-slate-900">Thông tin liên hệ</h2>
-                  <p className="text-xs text-slate-400">Thông tin được bảo mật chuẩn hồ sơ bệnh án</p>
+                  <p className="text-xs text-slate-400">Thông tin được bảo mật chuẩn y tế</p>
                 </div>
               </div>
               <div className="p-5 space-y-4">
@@ -469,7 +540,7 @@ const BookingPage = () => {
                         required
                         value={patientPhone}
                         onChange={(e) => setPatientPhone(e.target.value)}
-                        placeholder="Ví dụ: 0987 654 321"
+                        placeholder="Ví dụ: 0792275635"
                         className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all"
                       />
                     </div>
@@ -491,10 +562,10 @@ const BookingPage = () => {
             </div>
           </div>
 
-          {/* Cột phải: Tóm tắt lịch hẹn (sticky) */}
+          {/* CỘT PHẢI: TỔNG KẾT & XÁC NHẬN (4 Cols Sticky) */}
           <div className="lg:col-span-4 sticky top-20 space-y-4">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              {/* Summary header */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              {/* Header Tóm tắt */}
               <div className="bg-slate-900 px-5 py-4 text-white">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold">Tóm tắt lịch hẹn</h3>
@@ -502,7 +573,7 @@ const BookingPage = () => {
                     Bệnh nhân
                   </span>
                 </div>
-                {/* Datetime highlight */}
+                {/* Ngày giờ khám */}
                 <div className="bg-white/10 rounded-xl p-3 flex items-center justify-between">
                   <div>
                     <p className="text-[10px] text-slate-400 mb-0.5">Ngày khám</p>
@@ -511,12 +582,14 @@ const BookingPage = () => {
                   <div className="w-px h-8 bg-white/10" />
                   <div className="text-right">
                     <p className="text-[10px] text-slate-400 mb-0.5">Giờ khám</p>
-                    <p className="text-sm font-bold font-mono text-blue-300">{selectedTimeSlot}</p>
+                    <p className="text-sm font-bold font-mono text-blue-300">
+                      {selectedTimeSlot || 'Chưa chọn'}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Summary details */}
+              {/* Chi tiết dịch vụ */}
               <div className="px-5 py-4 space-y-3">
                 <div>
                   <span className="text-[11px] text-slate-400">Dịch vụ điều trị:</span>
@@ -538,12 +611,12 @@ const BookingPage = () => {
                 </div>
               </div>
 
-              {/* CTA */}
+              {/* Nút bấm xác nhận */}
               <div className="px-5 pb-5 space-y-3">
                 <button
                   type="submit"
-                  className="w-full py-3 px-4 rounded-xl font-bold text-sm text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/25 transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !selectedTimeSlot}
+                  className="w-full py-3 px-4 rounded-xl font-bold text-sm text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <>
@@ -564,7 +637,7 @@ const BookingPage = () => {
               </div>
             </div>
 
-            {/* Help widget */}
+            {/* Trợ giúp */}
             <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-xs text-slate-600">
               <div className="font-semibold text-slate-800 flex items-center gap-1.5 mb-1">
                 <Info className="w-3.5 h-3.5 text-blue-600" />

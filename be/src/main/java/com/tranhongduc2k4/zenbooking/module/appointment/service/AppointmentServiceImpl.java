@@ -21,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +43,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Transactional
     public AppointmentResponse bookAppointment(AppointmentBookingRequest request, User currentUser) {
         log.info("Đặt lịch khám mới cho: {}", request.getPatientName());
+
+        // Kiểm tra ràng buộc thời gian: thời gian đặt > thời gian hiện tại và phải trước tối thiểu 2 giờ
+        validateAppointmentTime(request.getAppointmentDate(), request.getAppointmentTime());
 
         // 1. Xác định thông tin bệnh nhân
         User patient = currentUser;
@@ -180,6 +186,32 @@ public class AppointmentServiceImpl implements AppointmentService {
         stats.put("cancelled", appointmentRepository.countByStatus(AppointmentStatus.CANCELLED));
         stats.put("today", appointmentRepository.countByAppointmentDate(LocalDate.now()));
         return stats;
+    }
+
+
+    private void validateAppointmentTime(LocalDate appointmentDate, String appointmentTimeStr) {
+        if (appointmentDate == null || appointmentTimeStr == null || appointmentTimeStr.trim().isEmpty()) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "Ngày và giờ khám không được để trống!");
+        }
+
+        LocalTime time;
+        try {
+            time = LocalTime.parse(appointmentTimeStr.trim(), DateTimeFormatter.ofPattern("HH:mm"));
+        } catch (Exception e) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "Định dạng giờ hẹn không hợp lệ (yêu cầu HH:mm)!");
+        }
+
+        LocalDateTime requestedDateTime = LocalDateTime.of(appointmentDate, time);
+        LocalDateTime now = LocalDateTime.now();
+
+        if (!requestedDateTime.isAfter(now)) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "Thời gian khám phải lớn hơn thời gian hiện tại!");
+        }
+
+        LocalDateTime minimumAllowedTime = now.plusHours(2);
+        if (requestedDateTime.isBefore(minimumAllowedTime)) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "Bạn vui lòng đặt lịch khám trước giờ hẹn tối thiểu 2 tiếng để phòng khám kịp chuẩn bị chu đáo!");
+        }
     }
 
     private String generateUniqueAppointmentCode() {

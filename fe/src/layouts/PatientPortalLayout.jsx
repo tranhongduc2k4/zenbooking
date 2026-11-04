@@ -9,7 +9,6 @@ import {
   Bell, 
   Menu, 
   X, 
-  ExternalLink,
   ChevronDown,
   PhoneCall
 } from 'lucide-react';
@@ -141,7 +140,7 @@ const PatientPortalLayout = () => {
         </nav>
 
         {/* Khối Hotline & Footer cố định */}
-        <div className="p-3 border-t border-slate-800 shrink-0 space-y-2">
+        <div className="p-3 border-t border-slate-800 shrink-0 space-y-2.5">
           {/* Hotline box */}
           <div className="px-3.5 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700/60">
             <div className="flex items-center gap-1.5 text-[11px] text-blue-400 font-semibold mb-0.5">
@@ -151,18 +150,6 @@ const PatientPortalLayout = () => {
             <div className="text-sm font-bold text-white tracking-wide">1900 8888</div>
             <p className="text-[11px] text-slate-300 mt-0.5 opacity-85">Hỗ trợ sự cố răng miệng khẩn cấp</p>
           </div>
-
-          <Link
-            to="/"
-            target="_blank"
-            className="flex items-center justify-between px-3 py-1.5 text-[12px] text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-          >
-            <span className="flex items-center gap-2">
-              <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-              Trang phòng khám
-            </span>
-            <span className="text-[10px] text-slate-400">/home</span>
-          </Link>
 
           {/* User Profile Card */}
           <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-800/90 border border-slate-700/60">
@@ -181,7 +168,7 @@ const PatientPortalLayout = () => {
               type="button"
               onClick={handleLogout}
               title="Đăng xuất"
-              className="p-1.5 text-slate-400 hover:text-red-400 rounded-lg hover:bg-slate-700/60 transition-colors shrink-0"
+              className="p-1.5 text-slate-400 hover:text-red-400 rounded-lg hover:bg-slate-700/60 transition-colors shrink-0 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -191,13 +178,13 @@ const PatientPortalLayout = () => {
 
       {/* Main Container Area */}
       <div className="lg:pl-64 flex flex-col flex-1 min-w-0">
-        {/* Top Header - Tinh gọn, loại bỏ ô tìm kiếm không cần thiết */}
+        {/* Top Header */}
         <header className="sticky top-0 z-30 h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between gap-4 shadow-xs">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
+              className="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               aria-label="Mở menu"
             >
               <Menu className="w-5 h-5" />
@@ -225,7 +212,7 @@ const PatientPortalLayout = () => {
             <button 
               type="button"
               title="Thông báo lịch hẹn"
-              className="relative p-2 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="relative p-2 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
             >
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full ring-2 ring-white" />

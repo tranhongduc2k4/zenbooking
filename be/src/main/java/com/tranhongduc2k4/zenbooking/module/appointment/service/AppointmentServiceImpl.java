@@ -42,18 +42,24 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional
     public AppointmentResponse bookAppointment(AppointmentBookingRequest request, User currentUser) {
-        log.info("Đặt lịch khám mới cho: {}", request.getPatientName());
+        log.info("Đặt lịch khám mới cho: {} vào ngày {} lúc {}", 
+                request.getPatientName(), request.getAppointmentDate(), request.getAppointmentTime());
 
         // Kiểm tra ràng buộc thời gian: thời gian đặt > thời gian hiện tại và phải trước tối thiểu 2 giờ
         validateAppointmentTime(request.getAppointmentDate(), request.getAppointmentTime());
 
-        // 1. Xác định thông tin bệnh nhân
+        // 1. Kiểm tra ràng buộc thời gian đặt lịch:
+        // - Thời gian đặt phải > thời gian hiện tại
+        // - Phải đặt trước tối thiểu 2 giờ
+        validateAppointmentTime(request.getAppointmentDate(), request.getAppointmentTime());
+
+        // 2. Xác định thông tin bệnh nhân
         User patient = currentUser;
         if (patient == null && request.getPatientPhone() != null) {
             patient = userRepository.findByPhone(request.getPatientPhone()).orElse(null);
         }
 
-        // 2. Xác định dịch vụ điều trị & đơn giá
+        // 3. Xác định dịch vụ điều trị & đơn giá
         DentalService dentalService = null;
         BigDecimal servicePrice = BigDecimal.ZERO;
         if (request.getServiceId() != null) {
@@ -63,13 +69,13 @@ public class AppointmentServiceImpl implements AppointmentService {
             }
         }
 
-        // 3. Xác định bác sĩ khám (nếu có chỉ định)
+        // 4. Xác định bác sĩ khám (nếu có chỉ định)
         User doctor = null;
         if (request.getDoctorId() != null) {
             doctor = userRepository.findById(request.getDoctorId()).orElse(null);
         }
 
-        // 4. Sinh mã lịch hẹn duy nhất (ZB-AP-XXXX)
+        // 5. Sinh mã lịch hẹn duy nhất (ZB-AP-XXXX)
         String appointmentCode = generateUniqueAppointmentCode();
 
         Appointment appointment = Appointment.builder()
@@ -94,21 +100,54 @@ public class AppointmentServiceImpl implements AppointmentService {
         return mapToResponse(saved);
     }
 
+    /**
+     * Xác thực khung giờ hẹn: Phải trong tương lai và trước thời điểm khám ít nhất 2 giờ.
+     */
+    private void validateAppointmentTime(LocalDate appointmentDate, String appointmentTimeStr) {
+        if (appointmentDate == null || appointmentTimeStr == null || appointmentTimeStr.trim().isEmpty()) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "Ngày và giờ khám không được để trống!");
+        }
+
+        LocalTime time;
+        try {
+            time = LocalTime.parse(appointmentTimeStr.trim(), DateTimeFormatter.ofPattern("HH:mm"));
+        } catch (Exception e) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "Định dạng giờ hẹn không hợp lệ (yêu cầu HH:mm)!");
+        }
+
+        LocalDateTime requestedDateTime = LocalDateTime.of(appointmentDate, time);
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. Không được đặt giờ trong quá khứ
+        if (!requestedDateTime.isAfter(now)) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, 
+                    "Thời gian khám phải lớn hơn thời gian hiện tại!");
+        }
+
+        // 2. Quy định: Phải đặt trước tối thiểu 2 giờ
+        LocalDateTime minimumAllowedTime = now.plusHours(2);
+        if (requestedDateTime.isBefore(minimumAllowedTime)) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, 
+                    "Bạn vui lòng đặt lịch khám trước giờ hẹn tối thiểu 2 tiếng để phòng khám kịp chuẩn bị chu đáo!");
+        }
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<AppointmentResponse> getMyAppointments(User currentUser) {
         if (currentUser == null) {
-            throw new CustomException(HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập để xem lịch hẹn cá nhân");
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "Bạn cần đăng nhập để xem lịch hẹn của mình!");
         }
 
         List<Appointment> list;
-        if (currentUser.getId() != null) {
+        if (currentUser.getRole() == Role.ROLE_DOCTOR) {
+            list = appointmentRepository.findByDoctorIdOrderByAppointmentDateDescAppointmentTimeDesc(currentUser.getId());
+        } else {
             list = appointmentRepository.findByPatientIdOrderByAppointmentDateDescAppointmentTimeDesc(currentUser.getId());
+            // Dự phòng nếu đặt trước đó bằng SĐT khi chưa gán ID
             if (list.isEmpty() && currentUser.getPhone() != null) {
                 list = appointmentRepository.findByPatientPhoneOrderByAppointmentDateDescAppointmentTimeDesc(currentUser.getPhone());
             }
-        } else {
-            list = appointmentRepository.findByPatientPhoneOrderByAppointmentDateDescAppointmentTimeDesc(currentUser.getPhone());
         }
 
         return list.stream().map(this::mapToResponse).collect(Collectors.toList());
@@ -116,63 +155,68 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> getAllAppointments(AppointmentStatus status, LocalDate date, Long doctorId, String search) {
-        String cleanSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
-        List<Appointment> list = appointmentRepository.searchAppointments(status, date, doctorId, cleanSearch);
+    public List<AppointmentResponse> getAllAppointmentsForAdmin(AppointmentStatus status, LocalDate date, String search) {
+        List<Appointment> list = appointmentRepository.searchAppointments(status, date, search);
         return list.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public AppointmentResponse getAppointmentById(Long id) {
-        Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch hẹn với ID: " + id));
-        return mapToResponse(appointment);
+        Appointment apt = appointmentRepository.findById(id)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch hẹn với mã ID: " + id));
+        return mapToResponse(apt);
     }
 
     @Override
     @Transactional
-    public AppointmentResponse updateStatus(Long id, AppointmentStatusUpdateRequest request) {
-        Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch hẹn với ID: " + id));
+    public AppointmentResponse updateStatus(Long id, AppointmentStatusUpdateRequest request, User updatedBy) {
+        Appointment apt = appointmentRepository.findById(id)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch hẹn để cập nhật!"));
 
-        appointment.setStatus(request.getStatus());
-        if (request.getStatus() == AppointmentStatus.CANCELLED && request.getCancellationReason() != null) {
-            appointment.setCancellationReason(request.getCancellationReason().trim());
+        apt.setStatus(request.getStatus());
+        if (request.getCancellationReason() != null) {
+            apt.setCancellationReason(request.getCancellationReason());
         }
 
-        Appointment updated = appointmentRepository.save(appointment);
-        log.info("Cập nhật trạng thái lịch hẹn {} sang {}", updated.getAppointmentCode(), updated.getStatus());
+        // Nếu admin/bác sĩ gán bác sĩ phụ trách ca
+        if (request.getDoctorId() != null) {
+            User doctor = userRepository.findById(request.getDoctorId()).orElse(null);
+            if (doctor != null) {
+                apt.setDoctor(doctor);
+                apt.setDoctorName(doctor.getFullName());
+            }
+        }
+
+        Appointment updated = appointmentRepository.save(apt);
+        log.info("Cập nhật trạng thái lịch hẹn {} sang {}", apt.getAppointmentCode(), request.getStatus());
         return mapToResponse(updated);
     }
 
     @Override
     @Transactional
     public AppointmentResponse cancelMyAppointment(Long id, String reason, User currentUser) {
-        if (currentUser == null) {
-            throw new CustomException(HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập để thực hiện thao tác này");
+        Appointment apt = appointmentRepository.findById(id)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch hẹn!"));
+
+        // Kiểm tra quyền: chỉ chính chủ bệnh nhân mới được hủy
+        boolean isOwner = (apt.getPatient() != null && apt.getPatient().getId().equals(currentUser.getId()))
+                || (currentUser.getPhone() != null && currentUser.getPhone().equals(apt.getPatientPhone()));
+
+        if (!isOwner && currentUser.getRole() != Role.ROLE_ADMIN) {
+            throw new CustomException(HttpStatus.FORBIDDEN, "Bạn không có quyền hủy lịch hẹn này!");
         }
 
-        Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch hẹn với ID: " + id));
-
-        // Kiểm tra quyền sở hữu lịch hẹn
-        boolean isOwner = (appointment.getPatient() != null && appointment.getPatient().getId().equals(currentUser.getId()))
-                || (appointment.getPatientPhone() != null && appointment.getPatientPhone().equals(currentUser.getPhone()));
-
-        if (!isOwner && currentUser.getRole() != Role.ADMIN) {
-            throw new CustomException(HttpStatus.FORBIDDEN, "Bạn không có quyền hủy lịch hẹn này");
+        if (apt.getStatus() == AppointmentStatus.COMPLETED) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "Ca khám đã hoàn thành, không thể hủy!");
         }
 
-        if (appointment.getStatus() == AppointmentStatus.COMPLETED) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Ca khám đã hoàn thành, không thể hủy");
-        }
+        apt.setStatus(AppointmentStatus.CANCELLED);
+        apt.setCancellationReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : "Bệnh nhân tự hủy ca khám");
 
-        appointment.setStatus(AppointmentStatus.CANCELLED);
-        appointment.setCancellationReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : "Bệnh nhân chủ động hủy ca khám");
-
-        Appointment updated = appointmentRepository.save(appointment);
-        return mapToResponse(updated);
+        Appointment cancelled = appointmentRepository.save(apt);
+        log.info("Bệnh nhân {} đã hủy lịch hẹn {}", currentUser.getFullName(), apt.getAppointmentCode());
+        return mapToResponse(cancelled);
     }
 
     @Override
@@ -216,32 +260,39 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private String generateUniqueAppointmentCode() {
         String code;
+        int attempts = 0;
         do {
-            int randomNum = 1000 + RANDOM.nextInt(9000); // 1000 to 9999
+            int randomNum = 1000 + RANDOM.nextInt(9000); // 1000 - 9999
             code = "ZB-AP-" + randomNum;
+            attempts++;
+            if (attempts > 50) {
+                code = "ZB-AP-" + System.currentTimeMillis() % 100000;
+                break;
+            }
         } while (appointmentRepository.existsByAppointmentCode(code));
+
         return code;
     }
 
-    private AppointmentResponse mapToResponse(Appointment appointment) {
+    private AppointmentResponse mapToResponse(Appointment apt) {
         return AppointmentResponse.builder()
-                .id(appointment.getId())
-                .appointmentCode(appointment.getAppointmentCode())
-                .patientId(appointment.getPatient() != null ? appointment.getPatient().getId() : null)
-                .patientName(appointment.getPatientName())
-                .patientPhone(appointment.getPatientPhone())
-                .doctorId(appointment.getDoctor() != null ? appointment.getDoctor().getId() : null)
-                .doctorName(appointment.getDoctorName())
-                .serviceId(appointment.getService() != null ? appointment.getService().getId() : null)
-                .serviceName(appointment.getServiceName())
-                .servicePrice(appointment.getServicePrice())
-                .appointmentDate(appointment.getAppointmentDate())
-                .appointmentTime(appointment.getAppointmentTime())
-                .status(appointment.getStatus())
-                .notes(appointment.getNotes())
-                .cancellationReason(appointment.getCancellationReason())
-                .createdAt(appointment.getCreatedAt())
-                .updatedAt(appointment.getUpdatedAt())
+                .id(apt.getId())
+                .appointmentCode(apt.getAppointmentCode())
+                .patientId(apt.getPatient() != null ? apt.getPatient().getId() : null)
+                .patientName(apt.getPatientName())
+                .patientPhone(apt.getPatientPhone())
+                .doctorId(apt.getDoctor() != null ? apt.getDoctor().getId() : null)
+                .doctorName(apt.getDoctorName())
+                .serviceId(apt.getService() != null ? apt.getService().getId() : null)
+                .serviceName(apt.getServiceName())
+                .servicePrice(apt.getServicePrice())
+                .appointmentDate(apt.getAppointmentDate())
+                .appointmentTime(apt.getAppointmentTime())
+                .status(apt.getStatus())
+                .notes(apt.getNotes())
+                .cancellationReason(apt.getCancellationReason())
+                .createdAt(apt.getCreatedAt())
+                .updatedAt(apt.getUpdatedAt())
                 .build();
     }
 }

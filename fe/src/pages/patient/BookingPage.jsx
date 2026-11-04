@@ -17,7 +17,8 @@ import {
   CalendarPlus, 
   RefreshCw, 
   Info,
-  AlertTriangle
+  AlertTriangle,
+  Search
 } from 'lucide-react';
 
 const BookingPage = () => {
@@ -56,6 +57,7 @@ const BookingPage = () => {
 
   // State
   const [services, setServices] = useState(DEFAULT_SERVICES);
+  const [serviceSearchTerm, setServiceSearchTerm] = useState('');
   const [selectedService, setSelectedService] = useState('1');
   const [loadingServices, setLoadingServices] = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState('any');
@@ -70,6 +72,19 @@ const BookingPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   /**
+   * Lọc danh sách dịch vụ theo từ khóa tìm kiếm
+   */
+  const filteredServices = services.filter((s) => {
+    const query = serviceSearchTerm.toLowerCase().trim();
+    if (!query) return true;
+    return (
+      s.name.toLowerCase().includes(query) ||
+      (s.category && s.category.toLowerCase().includes(query)) ||
+      (s.description && s.description.toLowerCase().includes(query))
+    );
+  });
+
+  /**
    * Kiểm tra khung giờ có hợp lệ không:
    * 1. Thời gian đặt phải > thời gian hiện tại
    * 2. Phải cách thời điểm hiện tại ít nhất 2 tiếng (120 phút)
@@ -81,7 +96,6 @@ const BookingPage = () => {
     const slotDate = new Date(year, month - 1, day, hours, minutes, 0);
 
     const now = new Date();
-    // Yêu cầu: thời gian khám > thời gian hiện tại + 2 giờ
     const minimumAllowedDate = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
     return slotDate > minimumAllowedDate;
@@ -159,7 +173,6 @@ const BookingPage = () => {
       return;
     }
 
-    // Kiểm tra lại tính hợp lệ trước khi gửi
     if (!isSlotValid(selectedTimeSlot, bookingDate)) {
       setFormError('Khung giờ này đã quá hạn hoặc không đủ thời gian chuẩn bị tối thiểu 2 giờ. Vui lòng chọn khung giờ khác!');
       return;
@@ -311,54 +324,82 @@ const BookingPage = () => {
           {/* CỘT TRÁI: CÁC BƯỚC ĐIỀN FORM (8 Cols) */}
           <div className="lg:col-span-8 space-y-5">
 
-            {/* BƯỚC 1: Chọn dịch vụ */}
+            {/* BƯỚC 1: Chọn dịch vụ (Kèm ô tìm kiếm dịch vụ trực quan Phương án A) */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold text-sm flex items-center justify-center">1</div>
-                <div>
-                  <h2 className="text-sm font-bold text-slate-900">Chọn dịch vụ điều trị</h2>
-                  <p className="text-xs text-slate-400">Lựa chọn nhu cầu chăm sóc răng miệng của bạn</p>
+              <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold text-sm flex items-center justify-center">1</div>
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-900">Chọn dịch vụ điều trị</h2>
+                    <p className="text-xs text-slate-400">Lựa chọn nhu cầu chăm sóc răng miệng của bạn</p>
+                  </div>
                 </div>
-                {loadingServices && <RefreshCw className="w-4 h-4 animate-spin text-blue-500 ml-auto" />}
+
+                {/* Ô tìm kiếm lọc nhanh dịch vụ */}
+                <div className="relative w-full sm:w-60">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={serviceSearchTerm}
+                    onChange={(e) => setServiceSearchTerm(e.target.value)}
+                    placeholder="Tìm nhanh dịch vụ..."
+                    className="w-full pl-9 pr-3.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all"
+                  />
+                </div>
               </div>
-              <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {services.map((item) => {
-                  const isSelected = selectedService === item.id;
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => setSelectedService(item.id)}
-                      className={`cursor-pointer rounded-xl border p-4 transition-all relative group ${
-                        isSelected
-                          ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-400/50 shadow-xs'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3 pr-5">
-                        <span className="text-2xl shrink-0">{item.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <h3 className={`text-sm font-semibold leading-tight ${isSelected ? 'text-blue-900' : 'text-slate-900'}`}>
-                            {item.name}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <span className={`text-xs font-bold ${isSelected ? 'text-blue-600' : 'text-slate-700'}`}>
-                              {item.price}
-                            </span>
-                            <span className="text-slate-300">·</span>
-                            <span className="text-xs text-slate-400 flex items-center gap-1">
-                              <Clock className="w-3 h-3" /> {item.time}
-                            </span>
+
+              {/* Danh sách thẻ dịch vụ */}
+              <div className="p-5">
+                {loadingServices ? (
+                  <div className="py-8 text-center text-slate-400 flex items-center justify-center gap-2 text-xs">
+                    <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                    <span>Đang nạp danh mục dịch vụ...</span>
+                  </div>
+                ) : filteredServices.length === 0 ? (
+                  <div className="py-8 text-center text-slate-500 text-xs">
+                    Không tìm thấy dịch vụ nào khớp với từ khóa "{serviceSearchTerm}".
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {filteredServices.map((item) => {
+                      const isSelected = selectedService === item.id;
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => setSelectedService(item.id)}
+                          className={`cursor-pointer rounded-xl border p-4 transition-all relative group ${
+                            isSelected
+                              ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-400/50 shadow-xs'
+                              : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3 pr-5">
+                            <span className="text-2xl shrink-0">{item.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <h3 className={`text-sm font-semibold leading-tight ${isSelected ? 'text-blue-900' : 'text-slate-900'}`}>
+                                {item.name}
+                              </h3>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <span className={`text-xs font-bold ${isSelected ? 'text-blue-600' : 'text-slate-700'}`}>
+                                  {item.price}
+                                </span>
+                                <span className="text-slate-300">·</span>
+                                <span className="text-xs text-slate-400 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" /> {item.time}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className={`absolute top-4 right-4 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
+                            isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300 group-hover:border-slate-400'
+                          }`}>
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                           </div>
                         </div>
-                      </div>
-                      <div className={`absolute top-4 right-4 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
-                        isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300 group-hover:border-slate-400'
-                      }`}>
-                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                      </div>
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -404,7 +445,7 @@ const BookingPage = () => {
               </div>
             </div>
 
-            {/* BƯỚC 3: Chọn ngày & giờ khám (CÓ VALIDATION TRƯỚC 2 GIỜ) */}
+            {/* BƯỚC 3: Chọn ngày & giờ khám */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">

@@ -15,19 +15,498 @@ import {
   Stethoscope,
   XCircle,
   TrendingUp,
-  ArrowRight,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck,
+  Info
 } from 'lucide-react';
 import { appointmentApi } from '../../services/appointmentApi';
 
+// ==========================================
+// 1. COMPONENT: HERO BANNER (~120px)
+// ==========================================
+const HeroBanner = ({ userName, onRefresh, loading }) => {
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 text-white shadow-xs p-5 sm:p-6 min-h-[110px] flex items-center">
+      {/* Decorative background blurs */}
+      <div className="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-white/10 blur-xl pointer-events-none" />
+      <div className="absolute -bottom-10 right-32 w-32 h-32 rounded-full bg-cyan-400/15 blur-lg pointer-events-none" />
+
+      <div className="relative z-10 w-full flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        {/* Left: Greeting */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-[12px] font-semibold text-blue-100 uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
+            <span>Cổng Thông Tin Bệnh Nhân · ZenBooking Dental</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+            Chào mừng {userName || 'Bệnh nhân'} trở lại! 👋
+          </h1>
+          <p className="text-[13px] text-blue-100 font-normal leading-relaxed">
+            Theo dõi lịch khám nha khoa, hồ sơ y bạ điện tử và quyền lợi hội viên của bạn.
+          </p>
+        </div>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={loading}
+            aria-label="Làm mới dữ liệu"
+            className="inline-flex items-center justify-center gap-2 px-3.5 py-2 text-[13px] font-medium text-white bg-white/15 hover:bg-white/25 active:bg-white/30 border border-white/20 rounded-xl transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-white/40 disabled:opacity-60 cursor-pointer"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span>Làm mới</span>
+          </button>
+          <Link
+            to="/booking"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-[13px] font-semibold text-blue-700 bg-white hover:bg-blue-50 active:bg-blue-100 rounded-xl shadow-xs transition-all duration-150 hover:scale-[1.01] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-white"
+          >
+            <CalendarPlus className="w-4 h-4 text-blue-600" />
+            <span>Đặt lịch khám</span>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
+// 2. COMPONENT: STAT CARD (Hàng 4 thẻ chuẩn mực)
+// ==========================================
+const StatCard = ({ title, icon: Icon, iconBg, iconColor, value, unit, statusText, statusColor, statusBadge, loading }) => {
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs animate-pulse flex flex-col justify-between min-h-[148px]">
+        <div className="flex items-center justify-between">
+          <div className="h-3.5 w-24 bg-slate-200 rounded" />
+          <div className="w-9 h-9 rounded-xl bg-slate-200" />
+        </div>
+        <div className="my-3">
+          <div className="h-7 w-28 bg-slate-200 rounded" />
+        </div>
+        <div className="h-3.5 w-36 bg-slate-200 rounded" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs hover:shadow-md transition-shadow duration-150 flex flex-col justify-between min-h-[148px]">
+      {/* Trên: Nhãn + Icon */}
+      <div className="flex items-center justify-between">
+        <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-500">
+          {title}
+        </span>
+        <div className={`w-9 h-9 rounded-xl ${iconBg} ${iconColor} flex items-center justify-center shrink-0`}>
+          <Icon className="w-4.5 h-4.5" />
+        </div>
+      </div>
+
+      {/* Giữa: Số liệu lớn + Đơn vị */}
+      <div className="my-2.5">
+        <div className="flex items-baseline gap-1.5 flex-wrap">
+          <span className="text-2xl sm:text-[26px] font-bold text-slate-900 tracking-tight leading-none">
+            {value}
+          </span>
+          {unit && (
+            <span className="text-[13px] font-medium text-slate-500">
+              {unit}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Dưới: Trạng thái */}
+      <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 text-[12px] truncate">
+        {statusBadge}
+        <span className={`font-medium truncate ${statusColor || 'text-slate-600'}`}>
+          {statusText}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
+// 3. COMPONENT: APPOINTMENTS PANEL (Cột trái 8/12)
+// ==========================================
+const AppointmentsPanel = ({
+  appointments,
+  loading,
+  searchTerm,
+  setSearchTerm,
+  statusFilter,
+  setStatusFilter,
+  onCancelClick
+}) => {
+  const filterTabs = [
+    { key: 'ALL', label: 'Tất cả', count: appointments.length },
+    { key: 'PENDING', label: 'Chờ duyệt', count: appointments.filter(a => a.status === 'PENDING').length },
+    { key: 'CONFIRMED', label: 'Đã duyệt', count: appointments.filter(a => a.status === 'CONFIRMED').length },
+    { key: 'COMPLETED', label: 'Hoàn thành', count: appointments.filter(a => a.status === 'COMPLETED').length },
+    { key: 'CANCELLED', label: 'Đã hủy', count: appointments.filter(a => a.status === 'CANCELLED').length },
+  ];
+
+  const filtered = appointments.filter((apt) => {
+    const sName = (apt.serviceName || '').toLowerCase();
+    const dName = (apt.doctorName || '').toLowerCase();
+    const code = (apt.appointmentCode || '').toLowerCase();
+    const query = searchTerm.toLowerCase().trim();
+    const matchSearch = sName.includes(query) || dName.includes(query) || code.includes(query);
+    const matchStatus = statusFilter === 'ALL' || apt.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const renderStatusBadge = (status) => {
+    switch (status) {
+      case 'PENDING':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+            Chờ phòng khám duyệt
+          </span>
+        );
+      case 'CONFIRMED':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            Đã xác nhận
+          </span>
+        );
+      case 'COMPLETED':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+            <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+            Đã hoàn thành
+          </span>
+        );
+      case 'CANCELLED':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-rose-50 text-rose-700 border border-rose-200">
+            <XCircle className="w-3.5 h-3.5 text-rose-500" />
+            Đã hủy hẹn
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-medium bg-slate-100 text-slate-700">
+            {status}
+          </span>
+        );
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col h-full overflow-hidden">
+      {/* Header Panel */}
+      <div className="p-5 border-b border-slate-100 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">
+              Lịch hẹn của tôi
+            </h2>
+            <p className="text-[13px] text-slate-600 mt-0.5">
+              Danh sách ca khám nha khoa bạn đã đặt tại hệ thống ZenBooking
+            </p>
+          </div>
+
+          {/* Ô tìm kiếm */}
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Tìm dịch vụ, bác sĩ, mã lịch..."
+              className="w-full pl-9 pr-3.5 py-2 text-[13px] bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Tab lọc có badge đếm */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+          {filterTabs.map((tab) => {
+            const isActive = statusFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setStatusFilter(tab.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[13px] font-semibold transition-all duration-150 shrink-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span className={`text-[11px] px-1.5 py-0.2 rounded-md font-bold ${
+                  isActive ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-700'
+                }`}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-1 flex flex-col min-h-[320px]">
+        {loading ? (
+          /* Skeleton Loading */
+          <div className="p-5 space-y-3.5 flex-1">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-4 rounded-xl border border-slate-100 animate-pulse space-y-2.5">
+                <div className="flex justify-between">
+                  <div className="h-4 w-40 bg-slate-200 rounded" />
+                  <div className="h-4 w-20 bg-slate-200 rounded" />
+                </div>
+                <div className="h-3.5 w-64 bg-slate-200 rounded" />
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          /* Empty state gọn gàng, chiều cao ~320px */
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[320px]">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+              <Calendar className="w-7 h-7" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-800">
+              {searchTerm ? 'Không tìm thấy kết quả phù hợp' : 'Chưa có lịch hẹn nào'}
+            </h3>
+            <p className="text-[13px] text-slate-600 mt-1 max-w-sm leading-relaxed">
+              {searchTerm
+                ? 'Hãy thử thay đổi từ khóa tìm kiếm hoặc chọn bộ lọc trạng thái khác.'
+                : 'Bạn chưa có ca khám nha khoa nào được ghi nhận. Hãy đặt lịch hẹn để được bác sĩ thăm khám sớm nhất!'}
+            </p>
+            <Link
+              to="/booking"
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl shadow-xs transition-all duration-150 hover:scale-[1.01] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            >
+              <CalendarPlus className="w-4 h-4" />
+              <span>Đặt lịch khám ngay</span>
+            </Link>
+          </div>
+        ) : (
+          /* Danh sách lịch hẹn */
+          <>
+            {/* Desktop Table View (>= 768px) */}
+            <div className="hidden md:block overflow-x-auto flex-1">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="py-3 px-5">Dịch vụ & Mã hẹn</th>
+                    <th className="py-3 px-4">Bác sĩ phụ trách</th>
+                    <th className="py-3 px-4">Thời gian khám</th>
+                    <th className="py-3 px-4">Trạng thái</th>
+                    <th className="py-3 px-4 text-right">Chi phí</th>
+                    <th className="py-3 px-5 text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-[13px]">
+                  {filtered.map((apt) => (
+                    <tr key={apt.id} className="hover:bg-slate-50/70 transition-colors duration-150 group">
+                      <td className="py-3.5 px-5">
+                        <div className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors duration-150">
+                          {apt.serviceName}
+                        </div>
+                        <div className="text-[11px] text-blue-600 font-mono font-bold mt-0.5">
+                          {apt.appointmentCode}
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5 text-slate-700 font-medium">
+                          <Stethoscope className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          <span className="truncate max-w-[130px]">{apt.doctorName || 'Bác sĩ chỉ định'}</span>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                          <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <span>{apt.appointmentTime}</span>
+                        </div>
+                        <div className="text-[12px] text-slate-500 mt-0.5">
+                          {apt.appointmentDate}
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        {renderStatusBadge(apt.status)}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right">
+                        <span className="font-semibold text-slate-800 font-mono">
+                          {apt.servicePrice && Number(apt.servicePrice) > 0
+                            ? new Intl.NumberFormat('vi-VN').format(apt.servicePrice) + 'đ'
+                            : 'Miễn phí'}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-5 text-right">
+                        {(apt.status === 'PENDING' || apt.status === 'CONFIRMED') ? (
+                          <button
+                            type="button"
+                            onClick={() => onCancelClick(apt)}
+                            className="px-2.5 py-1 text-[12px] font-semibold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 hover:border-rose-600 rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                          >
+                            Hủy ca
+                          </button>
+                        ) : (
+                          <span className="text-[12px] text-slate-400 italic">
+                            {apt.status === 'COMPLETED' ? 'Đã hoàn tất' : 'Đã hủy'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card List (< 768px) */}
+            <div className="md:hidden divide-y divide-slate-100 flex-1">
+              {filtered.map((apt) => (
+                <div key={apt.id} className="p-4 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-slate-900 text-[14px]">
+                        {apt.serviceName}
+                      </div>
+                      <div className="text-[11px] text-blue-600 font-mono font-bold mt-0.5">
+                        {apt.appointmentCode}
+                      </div>
+                    </div>
+                    {renderStatusBadge(apt.status)}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[13px] text-slate-600 pt-1">
+                    <div className="flex items-center gap-1.5 font-medium text-slate-800">
+                      <Clock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                      <span>{apt.appointmentTime} · {apt.appointmentDate}</span>
+                    </div>
+                    <div className="text-right font-mono font-bold text-slate-800">
+                      {apt.servicePrice && Number(apt.servicePrice) > 0
+                        ? new Intl.NumberFormat('vi-VN').format(apt.servicePrice) + 'đ'
+                        : 'Miễn phí'}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-50 text-[12px]">
+                    <div className="flex items-center gap-1.5 text-slate-600 truncate max-w-[65%]">
+                      <Stethoscope className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{apt.doctorName || 'Bác sĩ chỉ định'}</span>
+                    </div>
+
+                    {(apt.status === 'PENDING' || apt.status === 'CONFIRMED') && (
+                      <button
+                        type="button"
+                        onClick={() => onCancelClick(apt)}
+                        className="px-2.5 py-1 text-[12px] font-semibold text-rose-600 bg-rose-50 hover:bg-rose-600 hover:text-white rounded-lg transition-colors"
+                      >
+                        Hủy ca
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
+// 4. COMPONENT: DOCTOR TIP CARD (Cột phải)
+// ==========================================
+const DoctorTipCard = () => {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col justify-between">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50/60 border-b border-blue-100/70 px-5 py-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs shadow-xs">
+            🦷
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold text-blue-700 uppercase tracking-wider">
+              Chăm sóc răng miệng
+            </p>
+            <h3 className="text-sm font-bold text-slate-900 leading-tight">
+              Lời dặn từ Bác sĩ ZenBooking
+            </h3>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-5 space-y-4">
+        <p className="text-[13px] text-slate-600 leading-relaxed">
+          Đánh răng đúng cách <strong className="text-slate-900 font-semibold">2 lần mỗi ngày</strong> bằng bàn chải lông mềm và kết hợp chỉ nha khoa sau bữa ăn giúp ngừa sâu răng và bảo vệ men răng tự nhiên tốt nhất.
+        </p>
+
+        <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-between text-[12px] border border-slate-100">
+          <span className="text-slate-600 font-medium">Khám răng định kỳ</span>
+          <span className="font-bold text-blue-700 bg-blue-100/70 px-2.5 py-1 rounded-lg">
+            6 tháng / lần
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
+// 5. COMPONENT: EMERGENCY CARD (Cột phải)
+// ==========================================
+const EmergencyCard = () => {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 flex flex-col justify-between space-y-3.5">
+      <div>
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
+          <h3 className="text-sm font-bold text-slate-900">
+            Cần hỗ trợ khẩn cấp?
+          </h3>
+        </div>
+        <p className="text-[13px] text-slate-600 leading-relaxed">
+          Nếu bạn gặp sự cố nha khoa đột xuất (ê buốt dữ dội, chấn thương răng), vui lòng gọi hotline để được tiếp nhận ưu tiên ngay:
+        </p>
+      </div>
+
+      <a
+        href="tel:19008888"
+        className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100/80 active:bg-blue-100 border border-blue-100 rounded-xl transition-all duration-150 group cursor-pointer"
+      >
+        <div className="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform duration-150">
+          <Phone className="w-4.5 h-4.5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-bold text-blue-700 tracking-wide">
+            1900 8888
+          </div>
+          <div className="text-[11px] text-blue-600 font-medium">
+            Tổng đài cấp cứu nha khoa 24/7 · Miễn phí
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-blue-400 group-hover:translate-x-0.5 transition-transform duration-150 shrink-0" />
+      </a>
+    </div>
+  );
+};
+
+// ==========================================
+// MAIN COMPONENT: PATIENT DASHBOARD
+// ==========================================
 const PatientDashboard = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [myAppointments, setMyAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Modal Hủy lịch hẹn
+
+  // Modal hủy ca khám
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -37,9 +516,11 @@ const PatientDashboard = () => {
   useEffect(() => {
     try {
       const stored = localStorage.getItem('user');
-      if (stored) setCurrentUser(JSON.parse(stored));
+      if (stored) {
+        setCurrentUser(JSON.parse(stored));
+      }
     } catch (e) {
-      console.error('Không thể đọc thông tin user:', e);
+      console.error('Không thể đọc thông tin người dùng:', e);
     }
   }, []);
 
@@ -50,13 +531,15 @@ const PatientDashboard = () => {
       const list = Array.isArray(res) ? res : (res?.data || []);
       setMyAppointments(list);
     } catch (err) {
-      console.warn('Lỗi khi nạp lịch hẹn của tôi:', err);
+      console.warn('Lỗi khi tải danh sách lịch khám:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchMyAppointments(); }, []);
+  useEffect(() => {
+    fetchMyAppointments();
+  }, []);
 
   const showNotification = (type, text) => {
     setFeedbackMessage({ type, text });
@@ -68,74 +551,35 @@ const PatientDashboard = () => {
     try {
       setActionLoading(true);
       await appointmentApi.cancelMyAppointment(selectedAppointment.id, cancelReason);
-      showNotification('success', `Đã hủy lịch hẹn ${selectedAppointment.appointmentCode} thành công`);
+      showNotification('success', `Đã hủy lịch hẹn ${selectedAppointment.appointmentCode} thành công.`);
       setCancelModalOpen(false);
       setSelectedAppointment(null);
       setCancelReason('');
       fetchMyAppointments();
     } catch (err) {
       console.error('Lỗi khi hủy lịch hẹn:', err);
-      showNotification('error', err.response?.data?.message || 'Có lỗi xảy ra khi hủy lịch hẹn');
+      showNotification('error', err.response?.data?.message || 'Có lỗi xảy ra khi hủy lịch khám.');
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Lọc danh sách lịch hẹn
-  const filteredAppointments = myAppointments.filter((apt) => {
-    const matchSearch =
-      (apt.serviceName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (apt.doctorName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (apt.appointmentCode || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus = statusFilter === 'ALL' || apt.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
-
-  // Tìm lịch khám kế tiếp
+  // Tìm ca khám sắp tới gần nhất (CONFIRMED hoặc PENDING)
   const nextAppointment = myAppointments.find(
     (a) => a.status === 'CONFIRMED' || a.status === 'PENDING'
   );
 
-  // Thống kê theo trạng thái
-  const countByStatus = (status) => myAppointments.filter(a => a.status === status).length;
-
-  const renderStatusBadge = (status) => {
-    const configs = {
-      PENDING: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500 animate-pulse', label: 'Chờ duyệt' },
-      CONFIRMED: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500', label: 'Đã xác nhận' },
-      COMPLETED: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500', label: 'Hoàn thành', icon: CheckCircle2 },
-      CANCELLED: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500', label: 'Đã hủy', icon: XCircle },
-    };
-    const cfg = configs[status] || { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', dot: 'bg-slate-400', label: status };
-    const Icon = cfg.icon;
-    return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-        {Icon 
-          ? <Icon className="w-3 h-3 shrink-0" />
-          : <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
-        }
-        <span className="truncate">{cfg.label}</span>
-      </span>
-    );
-  };
-
-  const filterTabs = [
-    { key: 'ALL', label: 'Tất cả', count: myAppointments.length },
-    { key: 'PENDING', label: 'Chờ duyệt', count: countByStatus('PENDING') },
-    { key: 'CONFIRMED', label: 'Đã duyệt', count: countByStatus('CONFIRMED') },
-    { key: 'COMPLETED', label: 'Hoàn thành', count: countByStatus('COMPLETED') },
-    { key: 'CANCELLED', label: 'Đã hủy', count: countByStatus('CANCELLED') },
-  ];
-
   return (
-    <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto px-2 sm:px-0">
-      {/* Toast Notification */}
+    <div className="max-w-[1280px] mx-auto space-y-6">
+      {/* Toast Alert */}
       {feedbackMessage && (
-        <div className={`fixed top-4 right-4 left-4 sm:left-auto sm:max-w-sm sm:w-full z-50 p-4 rounded-2xl shadow-xl flex items-start gap-3 text-sm border animate-pulse ${
-          feedbackMessage.type === 'success'
-            ? 'bg-white text-emerald-800 border-emerald-200 shadow-emerald-100'
-            : 'bg-white text-rose-800 border-rose-200 shadow-rose-100'
-        }`}>
+        <div
+          className={`fixed top-5 right-5 z-50 max-w-sm w-full p-4 rounded-2xl shadow-xl flex items-start gap-3 text-[13px] border animate-fadeIn transition-all ${
+            feedbackMessage.type === 'success'
+              ? 'bg-white text-emerald-800 border-emerald-200 shadow-emerald-100/50'
+              : 'bg-white text-rose-800 border-rose-200 shadow-rose-100/50'
+          }`}
+        >
           {feedbackMessage.type === 'success' ? (
             <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
           ) : (
@@ -145,464 +589,152 @@ const PatientDashboard = () => {
         </div>
       )}
 
-      {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-6 text-white relative overflow-hidden shadow-sm">
-        {/* Decorative circles */}
-        <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
-        <div className="absolute -bottom-8 right-20 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <p className="text-blue-200 text-xs font-medium mb-1 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
-              Cổng Thông Tin Bệnh Nhân · ZenBooking Dental
-            </p>
-            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">
-              Chào mừng {currentUser?.fullName || 'Bệnh nhân'} 👋
-            </h1>
-            <p className="text-blue-100 text-xs sm:text-sm mt-1">
-              Theo dõi lịch hẹn, hồ sơ và tình trạng sức khỏe răng miệng của bạn.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
-            <button 
-              onClick={fetchMyAppointments}
-              disabled={loading}
-              className="flex-1 sm:flex-none justify-center inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-blue-100 bg-white/10 hover:bg-white/20 rounded-xl transition-all border border-white/10 disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Làm mới
-            </button>
-            <Link
-              to="/booking"
-              className="flex-1 sm:flex-none justify-center inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-blue-700 bg-white hover:bg-blue-50 rounded-xl shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <CalendarPlus className="w-4 h-4" />
-              Đặt lịch khám
-            </Link>
-          </div>
-        </div>
+      {/* 1. Hero Banner (~120px) */}
+      <HeroBanner
+        userName={currentUser?.fullName}
+        onRefresh={fetchMyAppointments}
+        loading={loading}
+      />
+
+      {/* 2. Hàng thống kê 4 thẻ bằng nhau (Grid 4 cột, gap 16px, cùng chiều cao) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Thẻ 1: Lịch khám kế tiếp */}
+        <StatCard
+          loading={loading}
+          title="Lịch khám kế tiếp"
+          icon={Calendar}
+          iconBg="bg-blue-50"
+          iconColor="text-blue-600"
+          value={nextAppointment ? nextAppointment.appointmentTime : 'Chưa có hẹn'}
+          unit={nextAppointment ? `· ${nextAppointment.appointmentDate}` : ''}
+          statusText={nextAppointment ? 'Hệ thống đã tiếp nhận' : 'Phòng khám sẵn sàng tiếp đón'}
+          statusColor={nextAppointment ? 'text-emerald-700' : 'text-slate-600'}
+          statusBadge={
+            <span className={`w-2 h-2 rounded-full ${nextAppointment ? 'bg-emerald-500' : 'bg-blue-500'} animate-pulse shrink-0`} />
+          }
+        />
+
+        {/* Thẻ 2: Tổng số lượt khám (nhất quán) */}
+        <StatCard
+          loading={loading}
+          title="Tổng lịch khám"
+          icon={TrendingUp}
+          iconBg="bg-indigo-50"
+          iconColor="text-indigo-600"
+          value={myAppointments.length}
+          unit="lượt khám"
+          statusText="Tổng số lượt khám đã ghi nhận"
+          statusColor="text-slate-600"
+          statusBadge={
+            <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+          }
+        />
+
+        {/* Thẻ 3: Đơn thuốc đang dùng */}
+        <StatCard
+          loading={loading}
+          title="Đơn thuốc lưu"
+          icon={Pill}
+          iconBg="bg-emerald-50"
+          iconColor="text-emerald-600"
+          value={myAppointments.length > 0 ? 1 : 0}
+          unit="đơn đang dùng"
+          statusText="Theo dõi liều lượng chuẩn y khoa"
+          statusColor="text-slate-600"
+          statusBadge={
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+          }
+        />
+
+        {/* Thẻ 4: Điểm thưởng ZenZen */}
+        <StatCard
+          loading={loading}
+          title="Điểm thưởng ZenZen"
+          icon={Sparkles}
+          iconBg="bg-amber-50"
+          iconColor="text-amber-600"
+          value={100}
+          unit="Điểm tích lũy"
+          statusText="Hạng: Bệnh nhân Thân Thiết"
+          statusColor="text-amber-700 font-semibold"
+          statusBadge={
+            <Award className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          }
+        />
       </div>
 
-      {/* Stats Cards Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Card 1: Lịch khám kế tiếp */}
-        <div className="col-span-2 sm:col-span-1 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide">Lịch kế tiếp</span>
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-              <Calendar className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-blue-600" />
-            </div>
-          </div>
-          {nextAppointment ? (
-            <>
-              <div className="text-base sm:text-lg font-bold text-blue-600 leading-tight">
-                {nextAppointment.appointmentTime}
-              </div>
-              <div className="text-xs text-slate-500 mt-0.5 font-medium truncate">{nextAppointment.appointmentDate}</div>
-              <div className="mt-2.5 sm:mt-3 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                <span className="truncate">Đã tiếp nhận</span>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-sm font-semibold text-slate-700 mt-1">Chưa có lịch hẹn</div>
-              <div className="text-xs text-slate-400 mt-0.5 truncate">Đặt lịch định kỳ ngay</div>
-              <div className="mt-2.5 sm:mt-3 flex items-center gap-1.5 text-xs text-blue-600 font-medium">
-                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shrink-0" />
-                <span className="truncate">Phòng khám sẵn sàng</span>
-              </div>
-            </>
-          )}
+      {/* 3. Khu nội dung chính: Grid 12 cột (8 / 4), align-items: stretch */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* Cột trái (8/12) */}
+        <div className="lg:col-span-8 flex flex-col">
+          <AppointmentsPanel
+            appointments={myAppointments}
+            loading={loading}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            onCancelClick={(apt) => {
+              setSelectedAppointment(apt);
+              setCancelModalOpen(true);
+            }}
+          />
         </div>
 
-        {/* Card 2: Tổng số */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide">Tổng lịch</span>
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-              <TrendingUp className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-purple-600" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">{myAppointments.length}</span>
-            <span className="text-xs text-slate-400 font-medium">lần</span>
-          </div>
-          <div className="mt-2.5 sm:mt-3 text-[11px] sm:text-xs text-slate-400 truncate">Hồ sơ y bạ số</div>
-        </div>
-
-        {/* Card 3: Đơn thuốc */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide">Đơn thuốc</span>
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-              <Pill className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-emerald-600" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">1</span>
-            <span className="text-xs text-slate-400 font-medium">đơn</span>
-          </div>
-          <div className="mt-2.5 sm:mt-3 flex items-center gap-1 text-[11px] sm:text-xs text-emerald-600 font-medium truncate">
-            <CheckCircle2 className="w-3 h-3 shrink-0" />
-            <span className="truncate">Phục hồi tốt</span>
-          </div>
-        </div>
-
-        {/* Card 4: Điểm thưởng */}
-        <div className="col-span-2 sm:col-span-1 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide">ZenZen Points</span>
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
-              <Sparkles className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-500" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">100</span>
-            <span className="text-xs text-slate-400 font-medium">điểm</span>
-          </div>
-          <div className="mt-2.5 sm:mt-3 flex items-center gap-1 text-[11px] sm:text-xs text-amber-600 font-semibold truncate">
-            <Award className="w-3 h-3 shrink-0" />
-            <span className="truncate">Khách thân thiết</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main 2-Column Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
-        
-        {/* Bảng lịch hẹn - 2/3 width */}
-        <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          {/* Table Header */}
-          <div className="p-4 sm:p-5 border-b border-slate-100">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 sm:mb-4">
-              <div>
-                <h2 className="text-sm sm:text-base font-bold text-slate-900">Lịch hẹn của tôi</h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {myAppointments.length} lịch hẹn được ghi nhận tại ZenBooking
-                </p>
-              </div>
-              {/* Search */}
-              <div className="relative w-full sm:w-56">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Tìm theo dịch vụ, bác sĩ..."
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
-              {filterTabs.map(tab => (
-                <button
-                  key={tab.key}
-                  onClick={() => setStatusFilter(tab.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
-                    statusFilter === tab.key
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
-                  }`}
-                >
-                  {tab.label}
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
-                    statusFilter === tab.key ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-500'
-                  }`}>
-                    {tab.count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Table Body & Mobile List */}
-          <div>
-            {loading ? (
-              <div className="py-12 sm:py-16 text-center">
-                <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-3" />
-                <p className="text-sm text-slate-400">Đang tải dữ liệu...</p>
-              </div>
-            ) : filteredAppointments.length === 0 ? (
-              <div className="py-12 sm:py-16 text-center px-4">
-                <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <Calendar className="w-7 h-7 text-slate-300" />
-                </div>
-                <p className="text-sm font-semibold text-slate-500">Không tìm thấy lịch hẹn nào</p>
-                <p className="text-xs text-slate-400 mt-1">Hãy đặt lịch khám hoặc thử lọc lại</p>
-                <Link
-                  to="/booking"
-                  className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all"
-                >
-                  <CalendarPlus className="w-3.5 h-3.5" />
-                  Đặt lịch ngay
-                </Link>
-              </div>
-            ) : (
-              <>
-                {/* 1. Mobile Cards View (< sm screens) */}
-                <div className="block sm:hidden divide-y divide-slate-100">
-                  {filteredAppointments.map((apt) => (
-                    <div key={apt.id} className="p-4 space-y-2.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="font-semibold text-slate-900 text-sm">
-                            {apt.serviceName}
-                          </div>
-                          <div className="text-[11px] text-blue-600 font-mono font-bold mt-0.5">
-                            {apt.appointmentCode}
-                          </div>
-                        </div>
-                        {renderStatusBadge(apt.status)}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 pt-1">
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                          <span className="font-medium text-slate-800">{apt.appointmentTime}</span>
-                          <span className="text-slate-400">· {apt.appointmentDate}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-bold text-slate-800 font-mono">
-                            {apt.servicePrice && Number(apt.servicePrice) > 0
-                              ? new Intl.NumberFormat('vi-VN').format(apt.servicePrice) + 'đ'
-                              : 'Miễn phí'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-50 text-xs">
-                        <div className="flex items-center gap-1 text-slate-500 truncate max-w-[65%]">
-                          <Stethoscope className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate">{apt.doctorName || 'Bác sĩ bất kỳ'}</span>
-                        </div>
-
-                        {(apt.status === 'PENDING' || apt.status === 'CONFIRMED') && (
-                          <button
-                            onClick={() => { setSelectedAppointment(apt); setCancelModalOpen(true); }}
-                            className="px-2.5 py-1 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all"
-                          >
-                            Hủy ca
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* 2. Desktop & Tablet Table View (>= sm screens) */}
-                <div className="hidden sm:block overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Dịch vụ & Mã hẹn</th>
-                        <th className="py-3 px-3 sm:px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Bác sĩ</th>
-                        <th className="py-3 px-3 sm:px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Thời gian</th>
-                        <th className="py-3 px-3 sm:px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Trạng thái</th>
-                        <th className="py-3 px-3 sm:px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-right">Chi phí</th>
-                        <th className="py-3 px-4 sm:px-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-right">Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {filteredAppointments.map((apt) => (
-                        <tr key={apt.id} className="hover:bg-slate-50/70 transition-colors group">
-                          <td className="py-3.5 px-4 sm:px-5">
-                            <div className="font-semibold text-slate-900 text-sm leading-tight group-hover:text-blue-600 transition-colors">
-                              {apt.serviceName}
-                            </div>
-                            <div className="text-[11px] text-blue-500 font-mono font-bold mt-0.5">
-                              {apt.appointmentCode}
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-3 sm:px-4">
-                            <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium">
-                              <Stethoscope className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span className="truncate max-w-[120px]">{apt.doctorName || 'Bác sĩ bất kỳ'}</span>
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-3 sm:px-4">
-                            <div className="flex items-center gap-1 text-xs font-semibold text-slate-700">
-                              <Clock className="w-3 h-3 text-blue-500 shrink-0" />
-                              {apt.appointmentTime}
-                            </div>
-                            <div className="text-[11px] text-slate-400 mt-0.5">{apt.appointmentDate}</div>
-                          </td>
-                          <td className="py-3.5 px-3 sm:px-4">
-                            {renderStatusBadge(apt.status)}
-                          </td>
-                          <td className="py-3.5 px-3 sm:px-4 text-right">
-                            <span className="text-xs font-bold text-slate-700 font-mono">
-                              {apt.servicePrice && Number(apt.servicePrice) > 0
-                                ? new Intl.NumberFormat('vi-VN').format(apt.servicePrice) + 'đ'
-                                : 'Miễn phí'}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 sm:px-5 text-right">
-                            {(apt.status === 'PENDING' || apt.status === 'CONFIRMED') && (
-                              <button
-                                onClick={() => { setSelectedAppointment(apt); setCancelModalOpen(true); }}
-                                className="px-2.5 py-1 text-[11px] font-semibold text-rose-600 hover:text-white hover:bg-rose-500 border border-rose-200 hover:border-rose-500 rounded-lg transition-all"
-                              >
-                                Hủy ca
-                              </button>
-                            )}
-                            {apt.status === 'COMPLETED' && (
-                              <span className="text-[11px] text-slate-400 italic">Đã khám</span>
-                            )}
-                            {apt.status === 'CANCELLED' && (
-                              <span className="text-[11px] text-slate-400 italic">Đã hủy</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Cột phụ - 1/3 width */}
-        <div className="space-y-4 sm:space-y-5">
-          
-          {/* Lịch khám kế tiếp - Card chi tiết */}
-          {nextAppointment ? (
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white relative overflow-hidden shadow-sm">
-              <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/5 pointer-events-none" />
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-blue-200 uppercase tracking-wider">Lịch hẹn kế tiếp</span>
-                  <div className="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center">
-                    <Calendar className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-xl sm:text-2xl font-extrabold mb-1">{nextAppointment.appointmentTime}</div>
-                <div className="text-blue-200 text-sm font-medium mb-3">{nextAppointment.appointmentDate}</div>
-                <div className="bg-white/10 rounded-xl p-3 space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-blue-200">Dịch vụ:</span>
-                    <span className="font-semibold text-right max-w-[55%] truncate">{nextAppointment.serviceName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-blue-200">Bác sĩ:</span>
-                    <span className="font-semibold truncate">{nextAppointment.doctorName || 'Bác sĩ bất kỳ'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-blue-200">Trạng thái:</span>
-                    <span className="font-semibold">
-                      {nextAppointment.status === 'CONFIRMED' ? '✅ Đã xác nhận' : '⏳ Chờ duyệt'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl p-5 border border-dashed border-blue-200 text-center">
-              <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <CalendarPlus className="w-6 h-6 text-blue-500" />
-              </div>
-              <p className="text-sm font-semibold text-slate-700 mb-1">Chưa có lịch khám</p>
-              <p className="text-xs text-slate-400 mb-4">Đặt lịch định kỳ để bảo vệ sức khỏe răng miệng</p>
-              <Link
-                to="/booking"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all"
-              >
-                <CalendarPlus className="w-3.5 h-3.5" />
-                Đặt lịch ngay
-              </Link>
-            </div>
-          )}
-
-          {/* Lời khuyên bác sĩ */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 px-5 py-3 flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider">Chăm sóc răng miệng</p>
-                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">Lời dặn từ bác sĩ</p>
-              </div>
-              <span className="text-2xl">🦷</span>
-            </div>
-            <div className="px-5 py-4">
-              <p className="text-xs text-slate-600 leading-relaxed mb-3">
-                Đánh răng đúng cách <strong className="text-slate-800">2 lần/ngày</strong> với bàn chải lông mềm và sử dụng chỉ nha khoa sau mỗi bữa ăn để bảo vệ men răng tự nhiên.
-              </p>
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
-                <span className="text-slate-400">Kiểm tra định kỳ</span>
-                <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">6 tháng/lần</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Hotline */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
-            <p className="text-xs sm:text-sm font-bold text-slate-800 mb-1.5">Cần hỗ trợ khẩn cấp?</p>
-            <p className="text-xs text-slate-500 leading-relaxed mb-4">
-              Liên hệ hotline để được ưu tiên sắp xếp lại lịch khám hoặc hỗ trợ y tế nha khoa 24/7.
-            </p>
-            <a
-              href="tel:19008888"
-              className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all group"
-            >
-              <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/30">
-                <Phone className="w-4 h-4 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-blue-700">1900 8888</div>
-                <div className="text-[11px] text-blue-500 truncate">Hotline 24/7 · Miễn phí</div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-blue-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-            </a>
-          </div>
+        {/* Cột phải (4/12): Xếp dọc 2 thẻ, bỏ empty state trùng lặp */}
+        <div className="lg:col-span-4 flex flex-col justify-between gap-4">
+          <DoctorTipCard />
+          <EmergencyCard />
         </div>
       </div>
 
       {/* Modal Hủy lịch hẹn */}
       {cancelModalOpen && selectedAppointment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-scale-up">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-scaleUp">
             {/* Modal Header */}
-            <div className="bg-rose-50 border-b border-rose-100 px-5 sm:px-6 py-4 flex items-center gap-3">
+            <div className="bg-rose-50 border-b border-rose-100 px-5 py-4 flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
                 <AlertCircle className="w-5 h-5 text-rose-600" />
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-sm">Hủy Ca Khám Nha Khoa</h3>
-                <p className="text-xs text-slate-500">Mã hẹn: <span className="font-mono font-bold text-blue-600">{selectedAppointment.appointmentCode}</span></p>
+                <p className="text-[12px] text-slate-500">
+                  Mã phiếu: <span className="font-mono font-bold text-blue-600">{selectedAppointment.appointmentCode}</span>
+                </p>
               </div>
             </div>
 
             {/* Modal Body */}
-            <div className="px-5 sm:px-6 py-4 space-y-4">
-              <div className="bg-slate-50 rounded-xl p-3 text-xs text-slate-600 leading-relaxed">
-                Bạn có chắc muốn hủy ca khám <strong className="text-slate-900">{selectedAppointment.serviceName}</strong> vào ngày{' '}
-                <strong className="text-slate-900">{selectedAppointment.appointmentDate}</strong> lúc{' '}
-                <strong className="text-slate-900">{selectedAppointment.appointmentTime}</strong>?
+            <div className="p-5 space-y-4 text-[13px]">
+              <div className="bg-slate-50 rounded-xl p-3 text-slate-700 leading-relaxed border border-slate-100">
+                Bạn có chắc chắn muốn hủy ca khám <strong>{selectedAppointment.serviceName}</strong> vào ngày{' '}
+                <strong>{selectedAppointment.appointmentDate}</strong> lúc <strong>{selectedAppointment.appointmentTime}</strong>?
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
                   Lý do hủy (Tùy chọn):
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Ví dụ: Bận công việc đột xuất, muốn dời sang tuần sau..."
+                  placeholder="Ví dụ: Bận việc đột xuất, dời sang tuần sau..."
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
-                  className="w-full p-3 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-400/20 focus:border-rose-400 resize-none transition-all"
+                  className="w-full p-3 text-[13px] rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-none transition-all"
                 />
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="px-5 sm:px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+            <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-end gap-2.5 bg-slate-50/50">
               <button
                 type="button"
-                onClick={() => { setCancelModalOpen(false); setCancelReason(''); }}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                onClick={() => {
+                  setCancelModalOpen(false);
+                  setCancelReason('');
+                }}
+                className="px-4 py-2 text-[13px] font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               >
                 Quay lại
               </button>
@@ -610,7 +742,7 @@ const PatientDashboard = () => {
                 type="button"
                 onClick={handleCancelAppointment}
                 disabled={actionLoading}
-                className="px-5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-all disabled:opacity-50 shadow-sm shadow-rose-500/20"
+                className="px-4 py-2 text-[13px] font-semibold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 rounded-xl shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {actionLoading ? 'Đang hủy...' : 'Xác nhận hủy hẹn'}
               </button>

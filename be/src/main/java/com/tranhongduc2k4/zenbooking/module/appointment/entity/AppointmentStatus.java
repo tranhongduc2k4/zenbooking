@@ -6,3 +6,4 @@ public enum AppointmentStatus {
     COMPLETED,  // Ca khám đã hoàn thành
     CANCELLED   // Đã hủy lịch hẹn
 }
+

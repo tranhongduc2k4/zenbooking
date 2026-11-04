@@ -91,3 +91,4 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.cancelMyAppointment(id, reason, currentUser));
     }
 }
+

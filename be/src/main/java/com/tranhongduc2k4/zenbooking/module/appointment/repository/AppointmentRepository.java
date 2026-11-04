@@ -47,3 +47,4 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("search") String search
     );
 }
+

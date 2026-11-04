@@ -87,3 +87,4 @@ public class Appointment {
         this.updatedAt = LocalDateTime.now();
     }
 }
+

@@ -38,3 +38,4 @@ public class AppointmentBookingRequest {
 
     private String notes;
 }
+

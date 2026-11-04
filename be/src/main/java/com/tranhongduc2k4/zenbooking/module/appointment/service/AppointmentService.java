@@ -26,3 +26,4 @@ public interface AppointmentService {
 
     Map<String, Object> getAppointmentStats();
 }
+

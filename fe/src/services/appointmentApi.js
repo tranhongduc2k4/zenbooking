@@ -40,3 +40,4 @@ export const appointmentApi = {
 };
 
 export default appointmentApi;
+

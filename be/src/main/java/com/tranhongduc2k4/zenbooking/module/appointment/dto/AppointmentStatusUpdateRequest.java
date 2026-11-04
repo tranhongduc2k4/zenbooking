@@ -18,3 +18,4 @@ public class AppointmentStatusUpdateRequest {
 
     private String cancellationReason;
 }
+

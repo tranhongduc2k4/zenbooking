@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dentalServiceApi } from '../../services/dentalServiceApi';
+import { doctorApi } from '../../services/doctorApi';
 import { appointmentApi } from '../../services/appointmentApi';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -34,8 +35,8 @@ const BookingPage = () => {
     { id: '6', name: 'Cấy ghép Implant thẩm mỹ', price: 'Từ 12.000.000đ', time: '60 phút', icon: '🔩', category: 'Implant' },
   ];
 
-  // Danh sách bác sĩ
-  const doctors = [
+  // Danh sách bác sĩ mặc định dự phòng
+  const DEFAULT_DOCTORS = [
     { id: 'any', name: 'Bác sĩ bất kỳ (hệ thống tự sắp xếp)', specialty: 'Đội ngũ chuyên khoa', available: true },
     { id: 'dr_tuan', name: 'BS. CKI Trần Minh Tuấn', specialty: 'Chỉnh nha & Răng khôn · 12 năm KN', available: true },
     { id: 'dr_yen', name: 'ThS. BS Lê Hoàng Yến', specialty: 'Nha khoa Thẩm mỹ · 10 năm KN', available: true },
@@ -60,6 +61,7 @@ const BookingPage = () => {
   const [serviceSearchTerm, setServiceSearchTerm] = useState('');
   const [selectedService, setSelectedService] = useState('1');
   const [loadingServices, setLoadingServices] = useState(true);
+  const [doctors, setDoctors] = useState(DEFAULT_DOCTORS);
   const [selectedDoctor, setSelectedDoctor] = useState('any');
   const [bookingDate, setBookingDate] = useState(getTodayDateString());
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
@@ -144,6 +146,31 @@ const BookingPage = () => {
     fetchServices();
   }, []);
 
+  // Tải danh sách bác sĩ chuyên khoa từ Backend MySQL
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const res = await doctorApi.getDoctors();
+        const dataList = Array.isArray(res) ? res : (res?.data || []);
+        if (dataList && dataList.length > 0) {
+          const mapped = [
+            { id: 'any', name: 'Bác sĩ bất kỳ (hệ thống tự sắp xếp)', specialty: 'Đội ngũ chuyên khoa', available: true },
+            ...dataList.map((d) => ({
+              id: String(d.id),
+              name: d.fullName,
+              specialty: d.specialty || 'Bác sĩ chuyên khoa',
+              available: true,
+            }))
+          ];
+          setDoctors(mapped);
+        }
+      } catch (err) {
+        console.warn('Không thể tải bác sĩ từ server, dùng danh sách dự phòng:', err);
+      }
+    };
+    fetchDoctors();
+  }, []);
+
   // Tự động điền thông tin người dùng đã đăng nhập
   useEffect(() => {
     try {
@@ -182,10 +209,11 @@ const BookingPage = () => {
     try {
       setIsSubmitting(true);
       const parsedServiceId = Number(selectedService);
+      const isSpecificDoctor = selectedDoctor !== 'any' && !isNaN(Number(selectedDoctor));
       const bookingPayload = {
         serviceId: !isNaN(parsedServiceId) ? parsedServiceId : null,
         serviceName: currentService?.name,
-        doctorId: null,
+        doctorId: isSpecificDoctor ? Number(selectedDoctor) : null,
         doctorName: currentDoctor?.name,
         appointmentDate: bookingDate,
         appointmentTime: selectedTimeSlot,

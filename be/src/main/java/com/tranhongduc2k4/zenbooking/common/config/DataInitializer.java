@@ -36,37 +36,53 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void initUsers() {
-        if (userRepository.count() == 0) {
-            log.info("Khởi tạo tài khoản mẫu (Bệnh nhân, Bác sĩ, Admin)...");
-            String defaultPasswordHash = passwordEncoder.encode("123456");
+        log.info("Kiểm tra và khởi tạo danh sách Bác sĩ chuyên khoa & Tài khoản mẫu...");
+        String defaultPassword = "123456";
 
-            User patient = User.builder()
-                    .fullName("Trần Hồng Đức")
-                    .phone("0792275635")
-                    .email("duc.patient@zenbooking.com")
-                    .passwordHash(defaultPasswordHash)
-                    .role(Role.PATIENT)
+        // 1. Tài khoản Bệnh nhân mẫu
+        upsertUser("Trần Hồng Đức", "0792275635", "duc.patient@zenbooking.com", defaultPassword, Role.PATIENT, "Bệnh nhân thân thiết");
+
+        // 2. Tài khoản Admin quản trị viên
+        upsertUser("Admin Quản Trị Viên", "0909999999", "admin@zenbooking.com", defaultPassword, Role.ADMIN, "Quản lý phòng khám");
+
+        // 3. Đội ngũ Bác sĩ chuyên khoa (chuẩn theo giao diện & bổ sung thêm)
+        upsertDoctor("BS. CKI Trần Minh Tuấn", "0988888888", "tuan.doctor@zenbooking.com", defaultPassword, "Chỉnh nha & Răng khôn · 12 năm KN");
+        upsertDoctor("ThS. BS Lê Hoàng Yến", "0988888889", "yen.doctor@zenbooking.com", defaultPassword, "Nha khoa Thẩm mỹ · 10 năm KN");
+        upsertDoctor("BS. Nguyễn Văn Hùng", "0988888890", "hung.doctor@zenbooking.com", defaultPassword, "Cấy ghép Implant · 8 năm KN");
+        upsertDoctor("BS. CKI Phạm Thanh Tùng", "0988888891", "tung.doctor@zenbooking.com", defaultPassword, "Nha khoa Tổng quát & Trám răng · 9 năm KN");
+        upsertDoctor("ThS. BS Đỗ Thu Hà", "0988888892", "ha.doctor@zenbooking.com", defaultPassword, "Nha chu & Răng trẻ em · 7 năm KN");
+        upsertDoctor("BS. CKI Vũ Đức Thắng", "0988888893", "thang.doctor@zenbooking.com", defaultPassword, "Phục hình Thẩm mỹ & Dán sứ Veneer · 11 năm KN");
+
+        log.info("Hoàn tất khởi tạo danh sách Bác sĩ chuyên khoa vào Database!");
+    }
+
+    private void upsertUser(String fullName, String phone, String email, String password, Role role, String specialty) {
+        User user = userRepository.findByPhone(phone)
+                .or(() -> userRepository.findByEmail(email))
+                .orElse(null);
+
+        if (user == null) {
+            user = User.builder()
+                    .fullName(fullName)
+                    .phone(phone)
+                    .email(email)
+                    .passwordHash(passwordEncoder.encode(password))
+                    .role(role)
+                    .specialty(specialty)
                     .build();
-
-            User doctor = User.builder()
-                    .fullName("BS. CKI Trần Minh Tuấn")
-                    .phone("0988888888")
-                    .email("tuan.doctor@zenbooking.com")
-                    .passwordHash(defaultPasswordHash)
-                    .role(Role.DOCTOR)
-                    .build();
-
-            User admin = User.builder()
-                    .fullName("Admin Quản Trị Viên")
-                    .phone("0909999999")
-                    .email("admin@zenbooking.com")
-                    .passwordHash(defaultPasswordHash)
-                    .role(Role.ADMIN)
-                    .build();
-
-            userRepository.saveAll(List.of(patient, doctor, admin));
-            log.info("Đã khởi tạo thành công 3 tài khoản mặc định (Mật khẩu: 123456)!");
+        } else {
+            user.setFullName(fullName);
+            user.setPhone(phone);
+            user.setEmail(email);
+            user.setRole(role);
+            user.setSpecialty(specialty);
+            user.setPasswordHash(passwordEncoder.encode(password));
         }
+        userRepository.save(user);
+    }
+
+    private void upsertDoctor(String fullName, String phone, String email, String password, String specialty) {
+        upsertUser(fullName, phone, email, password, Role.DOCTOR, specialty);
     }
 
     private void initServices() {

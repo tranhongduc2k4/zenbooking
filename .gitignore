@@ -1,0 +1,30 @@
+# Backend
+**/target/
+**/.mvn/
+**/mvnw
+**/mvnw.cmd
+
+# Frontend
+**/node_modules/
+**/dist/
+**/build/
+.npm
+
+# IDE & Editor
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment & Logs
+*.log
+.env
+.env.*.local

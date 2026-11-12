@@ -6,6 +6,13 @@ export const appointmentApi = {
     return axiosClient.post('/appointments', data);
   },
 
+  // Lấy danh sách khung giờ đã kín lịch của bác sĩ vào ngày chỉ định
+  getBookedSlots: (doctorId, date) => {
+    return axiosClient.get('/appointments/booked-slots', {
+      params: { doctorId: doctorId || undefined, date },
+    });
+  },
+
   // Bệnh nhân xem lịch hẹn cá nhân của mình
   getMyAppointments: () => {
     return axiosClient.get('/appointments/my-appointments');

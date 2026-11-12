@@ -16,3 +16,4 @@ public class DoctorResponse {
     private String email;
     private String specialty;
 }
+

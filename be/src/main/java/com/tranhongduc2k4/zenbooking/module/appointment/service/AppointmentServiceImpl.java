@@ -24,6 +24,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +75,34 @@ public class AppointmentServiceImpl implements AppointmentService {
         User doctor = null;
         if (request.getDoctorId() != null) {
             doctor = userRepository.findById(request.getDoctorId()).orElse(null);
+        }
+
+        // Kiểm tra xung đột lịch khám: Bác sĩ không thể nhận 2 ca cùng 1 thời điểm
+        if (doctor != null) {
+            boolean isDoctorBusy = appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndStatusIn(
+                    doctor.getId(),
+                    request.getAppointmentDate(),
+                    request.getAppointmentTime().trim(),
+                    List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
+            );
+            if (isDoctorBusy) {
+                throw new CustomException(HttpStatus.BAD_REQUEST,
+                        "Bác sĩ " + doctor.getFullName() + " đã có ca khám vào lúc " + 
+                        request.getAppointmentTime().trim() + " ngày " + request.getAppointmentDate() + 
+                        ". Quý khách vui lòng chọn khung giờ khác hoặc đổi bác sĩ điều trị!");
+            }
+        } else {
+            long totalDoctors = userRepository.countByRole(Role.DOCTOR);
+            long bookedDoctorsCount = appointmentRepository.countByAppointmentDateAndAppointmentTimeAndStatusIn(
+                    request.getAppointmentDate(),
+                    request.getAppointmentTime().trim(),
+                    List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
+            );
+            if (totalDoctors > 0 && bookedDoctorsCount >= totalDoctors) {
+                throw new CustomException(HttpStatus.BAD_REQUEST,
+                        "Tất cả các bác sĩ đều đã kín lịch vào lúc " + request.getAppointmentTime().trim() + 
+                        " ngày " + request.getAppointmentDate() + ". Quý khách vui lòng chọn khung giờ khác!");
+            }
         }
 
         // 5. Sinh mã lịch hẹn duy nhất (ZB-AP-XXXX)
@@ -230,6 +260,30 @@ public class AppointmentServiceImpl implements AppointmentService {
         stats.put("cancelled", appointmentRepository.countByStatus(AppointmentStatus.CANCELLED));
         stats.put("today", appointmentRepository.countByAppointmentDate(LocalDate.now()));
         return stats;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> getBookedSlots(Long doctorId, LocalDate date) {
+        if (date == null) return Collections.emptyList();
+
+        if (doctorId != null) {
+            return appointmentRepository.findBookedTimesByDoctor(doctorId, date);
+        } else {
+            long totalDoctors = userRepository.countByRole(Role.DOCTOR);
+            if (totalDoctors == 0) return Collections.emptyList();
+
+            List<Object[]> timeCounts = appointmentRepository.countBookedAppointmentsByTimeOnDate(date);
+            List<String> fullyBookedTimes = new ArrayList<>();
+            for (Object[] row : timeCounts) {
+                String time = (String) row[0];
+                long count = ((Number) row[1]).longValue();
+                if (count >= totalDoctors) {
+                    fullyBookedTimes.add(time);
+                }
+            }
+            return fullyBookedTimes;
+        }
     }
 
     private String generateUniqueAppointmentCode() {

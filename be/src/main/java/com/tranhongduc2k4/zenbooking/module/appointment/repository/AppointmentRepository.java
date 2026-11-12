@@ -31,6 +31,24 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     long countByAppointmentDate(LocalDate date);
 
+    boolean existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndStatusIn(
+            Long doctorId, LocalDate appointmentDate, String appointmentTime, List<AppointmentStatus> statuses);
+
+    long countByAppointmentDateAndAppointmentTimeAndStatusIn(
+            LocalDate appointmentDate, String appointmentTime, List<AppointmentStatus> statuses);
+
+    @Query("SELECT DISTINCT a.appointmentTime FROM Appointment a WHERE " +
+           "a.doctor IS NOT NULL AND a.doctor.id = :doctorId AND " +
+           "a.appointmentDate = :date AND " +
+           "a.status IN ('PENDING', 'CONFIRMED')")
+    List<String> findBookedTimesByDoctor(@Param("doctorId") Long doctorId, @Param("date") LocalDate date);
+
+    @Query("SELECT a.appointmentTime, count(a.id) FROM Appointment a WHERE " +
+           "a.appointmentDate = :date AND " +
+           "a.status IN ('PENDING', 'CONFIRMED') " +
+           "GROUP BY a.appointmentTime")
+    List<Object[]> countBookedAppointmentsByTimeOnDate(@Param("date") LocalDate date);
+
     @Query("SELECT a FROM Appointment a WHERE " +
            "(:status IS NULL OR a.status = :status) AND " +
            "(:date IS NULL OR a.appointmentDate = :date) AND " +

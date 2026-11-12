@@ -5,12 +5,14 @@ import com.tranhongduc2k4.zenbooking.module.appointment.entity.AppointmentStatus
 import com.tranhongduc2k4.zenbooking.module.appointment.repository.AppointmentRepository;
 import com.tranhongduc2k4.zenbooking.module.catalog.entity.DentalService;
 import com.tranhongduc2k4.zenbooking.module.catalog.repository.DentalServiceRepository;
+import com.tranhongduc2k4.zenbooking.module.user.entity.Role;
 import com.tranhongduc2k4.zenbooking.module.user.entity.User;
 import com.tranhongduc2k4.zenbooking.module.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,11 +26,47 @@ public class DataInitializer implements CommandLineRunner {
     private final DentalServiceRepository serviceRepository;
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
+        initUsers();
         initServices();
         initAppointments();
+    }
+
+    private void initUsers() {
+        if (userRepository.count() == 0) {
+            log.info("Khởi tạo tài khoản mẫu (Bệnh nhân, Bác sĩ, Admin)...");
+            String defaultPasswordHash = passwordEncoder.encode("123456");
+
+            User patient = User.builder()
+                    .fullName("Trần Hồng Đức")
+                    .phone("0792275635")
+                    .email("duc.patient@zenbooking.com")
+                    .passwordHash(defaultPasswordHash)
+                    .role(Role.PATIENT)
+                    .build();
+
+            User doctor = User.builder()
+                    .fullName("BS. CKI Trần Minh Tuấn")
+                    .phone("0988888888")
+                    .email("tuan.doctor@zenbooking.com")
+                    .passwordHash(defaultPasswordHash)
+                    .role(Role.DOCTOR)
+                    .build();
+
+            User admin = User.builder()
+                    .fullName("Admin Quản Trị Viên")
+                    .phone("0909999999")
+                    .email("admin@zenbooking.com")
+                    .passwordHash(defaultPasswordHash)
+                    .role(Role.ADMIN)
+                    .build();
+
+            userRepository.saveAll(List.of(patient, doctor, admin));
+            log.info("Đã khởi tạo thành công 3 tài khoản mặc định (Mật khẩu: 123456)!");
+        }
     }
 
     private void initServices() {

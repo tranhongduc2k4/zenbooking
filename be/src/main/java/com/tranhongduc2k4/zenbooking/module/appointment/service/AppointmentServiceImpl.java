@@ -140,7 +140,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         List<Appointment> list;
-        if (currentUser.getRole() == Role.ROLE_DOCTOR) {
+        if (currentUser.getRole() == Role.DOCTOR) {
             list = appointmentRepository.findByDoctorIdOrderByAppointmentDateDescAppointmentTimeDesc(currentUser.getId());
         } else {
             list = appointmentRepository.findByPatientIdOrderByAppointmentDateDescAppointmentTimeDesc(currentUser.getId());
@@ -155,8 +155,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> getAllAppointmentsForAdmin(AppointmentStatus status, LocalDate date, String search) {
-        List<Appointment> list = appointmentRepository.searchAppointments(status, date, search);
+    public List<AppointmentResponse> getAllAppointments(AppointmentStatus status, LocalDate date, Long doctorId, String search) {
+        List<Appointment> list = appointmentRepository.searchAppointments(status, date, doctorId, search);
         return list.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
@@ -170,7 +170,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional
-    public AppointmentResponse updateStatus(Long id, AppointmentStatusUpdateRequest request, User updatedBy) {
+    public AppointmentResponse updateStatus(Long id, AppointmentStatusUpdateRequest request) {
         Appointment apt = appointmentRepository.findById(id)
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch hẹn để cập nhật!"));
 
@@ -203,7 +203,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         boolean isOwner = (apt.getPatient() != null && apt.getPatient().getId().equals(currentUser.getId()))
                 || (currentUser.getPhone() != null && currentUser.getPhone().equals(apt.getPatientPhone()));
 
-        if (!isOwner && currentUser.getRole() != Role.ROLE_ADMIN) {
+        if (!isOwner && currentUser.getRole() != Role.ADMIN) {
             throw new CustomException(HttpStatus.FORBIDDEN, "Bạn không có quyền hủy lịch hẹn này!");
         }
 
@@ -230,32 +230,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         stats.put("cancelled", appointmentRepository.countByStatus(AppointmentStatus.CANCELLED));
         stats.put("today", appointmentRepository.countByAppointmentDate(LocalDate.now()));
         return stats;
-    }
-
-
-    private void validateAppointmentTime(LocalDate appointmentDate, String appointmentTimeStr) {
-        if (appointmentDate == null || appointmentTimeStr == null || appointmentTimeStr.trim().isEmpty()) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Ngày và giờ khám không được để trống!");
-        }
-
-        LocalTime time;
-        try {
-            time = LocalTime.parse(appointmentTimeStr.trim(), DateTimeFormatter.ofPattern("HH:mm"));
-        } catch (Exception e) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Định dạng giờ hẹn không hợp lệ (yêu cầu HH:mm)!");
-        }
-
-        LocalDateTime requestedDateTime = LocalDateTime.of(appointmentDate, time);
-        LocalDateTime now = LocalDateTime.now();
-
-        if (!requestedDateTime.isAfter(now)) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Thời gian khám phải lớn hơn thời gian hiện tại!");
-        }
-
-        LocalDateTime minimumAllowedTime = now.plusHours(2);
-        if (requestedDateTime.isBefore(minimumAllowedTime)) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Bạn vui lòng đặt lịch khám trước giờ hẹn tối thiểu 2 tiếng để phòng khám kịp chuẩn bị chu đáo!");
-        }
     }
 
     private String generateUniqueAppointmentCode() {

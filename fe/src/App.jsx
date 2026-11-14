@@ -11,6 +11,7 @@ import DashboardPage from './pages/admin/DashboardPage';
 import ServicesManagementPage from './pages/admin/ServicesManagementPage';
 import AppointmentsManagementPage from './pages/admin/AppointmentsManagementPage';
 import PatientsManagementPage from './pages/admin/PatientsManagementPage';
+import DoctorsManagementPage from './pages/admin/DoctorsManagementPage';
 import AdminPlaceholderPage from './pages/admin/AdminPlaceholderPage';
 import { UserCheck, DollarSign, Settings } from 'lucide-react';
 import LoginPage from './pages/auth/LoginPage';
@@ -48,7 +49,7 @@ function App() {
             <Route path="appointments" element={<AppointmentsManagementPage />} />
             <Route path="patients" element={<PatientsManagementPage />} />
             <Route path="services" element={<ServicesManagementPage />} />
-            <Route path="doctors" element={<AdminPlaceholderPage title="Quản lý Đội ngũ Bác sĩ" description="Quản lý danh sách bác sĩ, phân công ca trực và chuyên khoa điều trị tại phòng khám ZenBooking." icon={UserCheck} />} />
+            <Route path="doctors" element={<DoctorsManagementPage />} />
             <Route path="revenue" element={<AdminPlaceholderPage title="Doanh thu & Báo cáo Tài chính" description="Thống kê doanh thu ca khám, phân tích tỷ trọng dịch vụ nha khoa và hiệu suất kinh doanh." icon={DollarSign} />} />
             <Route path="settings" element={<AdminPlaceholderPage title="Cài đặt Hệ thống Phòng khám" description="Cấu hình thông tin cơ sở phòng khám, khung giờ làm việc và quy chuẩn bảo mật y tế." icon={Settings} />} />
           </Route>

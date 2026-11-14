@@ -15,5 +15,6 @@ public class DoctorResponse {
     private String phone;
     private String email;
     private String specialty;
+    private long totalAppointments;
+    private long completedAppointments;
 }
-

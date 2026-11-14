@@ -36,3 +36,4 @@ export const AdminPlaceholderPage = ({ title, description, icon: Icon = Construc
 };
 
 export default AdminPlaceholderPage;
+

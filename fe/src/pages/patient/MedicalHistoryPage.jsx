@@ -29,6 +29,7 @@ import {
   X
 } from 'lucide-react';
 import { appointmentApi } from '../../services/appointmentApi';
+import { parseClinicalRecord } from '../../utils/clinicalHelpers';
 
 const MedicalHistoryPage = () => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -374,8 +375,7 @@ const MedicalHistoryPage = () => {
         ) : (
           <div className="relative pl-6 sm:pl-8 border-l-2 border-blue-200 space-y-8 ml-3 sm:ml-4">
             {filteredRecords.map((apt, index) => {
-              const prescription = getPrescriptionForService(apt.serviceName);
-              const advice = getAdviceForService(apt.serviceName, apt.notes);
+              const clinical = parseClinicalRecord(apt.notes, apt.serviceName);
               const isFinished = apt.status === 'COMPLETED';
 
               return (
@@ -453,46 +453,67 @@ const MedicalHistoryPage = () => {
                         </div>
                       </div>
 
-                      {/* Chẩn đoán & Dặn dò y khoa */}
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                          <FileText className="w-4 h-4 text-blue-600" />
-                          Chẩn đoán lâm sàng & Lời dặn của bác sĩ:
-                        </h4>
-                        <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 text-xs text-slate-700 leading-relaxed">
-                          {advice}
+                      {/* Chẩn đoán lâm sàng & Lời dặn */}
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                            <FileText className="w-4 h-4 text-blue-600" />
+                            Chẩn đoán lâm sàng & Thủ thuật:
+                          </h4>
+                          <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 text-xs text-slate-800 leading-relaxed font-medium">
+                            {clinical.diagnosis}
+                          </div>
                         </div>
+
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                            <AlertCircle className="w-4 h-4 text-amber-600" />
+                            Lời dặn chăm sóc & Chế độ ăn uống:
+                          </h4>
+                          <div className="p-3 bg-amber-50/40 rounded-xl border border-amber-200/60 text-xs text-slate-700 leading-relaxed">
+                            {clinical.advice}
+                          </div>
+                        </div>
+
+                        {clinical.reExam && (
+                          <div className="flex items-center gap-2 text-xs text-emerald-800 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200">
+                            <Calendar className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span><strong>Lịch hẹn tái khám:</strong> {clinical.reExam}</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Đơn thuốc điện tử */}
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                          <Pill className="w-4 h-4 text-purple-600" />
-                          Toa thuốc điện tử chỉ định:
-                        </h4>
-                        <div className="overflow-x-auto rounded-xl border border-slate-200">
-                          <table className="w-full text-left border-collapse text-xs">
-                            <thead>
-                              <tr className="bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase border-b border-slate-200">
-                                <th className="py-2.5 px-3">Tên thuốc & Hàm lượng</th>
-                                <th className="py-2.5 px-3">Số lượng</th>
-                                <th className="py-2.5 px-3">Cách dùng</th>
-                                <th className="py-2.5 px-3">Chỉ định</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 text-slate-700">
-                              {prescription.map((m, idx) => (
-                                <tr key={idx} className="hover:bg-slate-50/50">
-                                  <td className="py-2.5 px-3 font-semibold text-slate-900">{m.name}</td>
-                                  <td className="py-2.5 px-3 font-mono font-medium">{m.qty}</td>
-                                  <td className="py-2.5 px-3 text-blue-700">{m.dose}</td>
-                                  <td className="py-2.5 px-3 text-slate-500">{m.usage}</td>
+                      {clinical.prescription && clinical.prescription.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <Pill className="w-4 h-4 text-purple-600" />
+                            Toa thuốc điện tử chỉ định ({clinical.prescription.length} loại):
+                          </h4>
+                          <div className="overflow-x-auto rounded-xl border border-slate-200">
+                            <table className="w-full text-left border-collapse text-xs">
+                              <thead>
+                                <tr className="bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase border-b border-slate-200">
+                                  <th className="py-2.5 px-3">Tên thuốc & Hàm lượng</th>
+                                  <th className="py-2.5 px-3">Số lượng</th>
+                                  <th className="py-2.5 px-3">Cách dùng</th>
+                                  <th className="py-2.5 px-3">Chỉ định / Ghi chú</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 text-slate-700">
+                                {clinical.prescription.map((m, idx) => (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="py-2.5 px-3 font-semibold text-slate-900">{m.name}</td>
+                                    <td className="py-2.5 px-3 font-mono font-medium">{m.qty}</td>
+                                    <td className="py-2.5 px-3 text-blue-700 font-medium">{m.dose}</td>
+                                    <td className="py-2.5 px-3 text-slate-500">{m.usage || '-'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Tư liệu hình ảnh & Cận lâm sàng */}
                       <div>
@@ -614,12 +635,52 @@ const MedicalHistoryPage = () => {
                 </div>
               </div>
 
-              {/* Lời dặn */}
+              {/* Chẩn đoán & Thủ thuật */}
+              <div>
+                <h5 className="font-bold text-slate-800 uppercase mb-1">Chẩn đoán lâm sàng & Thủ thuật:</h5>
+                <p className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-800 leading-relaxed font-medium">
+                  {parseClinicalRecord(selectedRecord.notes, selectedRecord.serviceName).diagnosis}
+                </p>
+              </div>
+
+              {/* Đơn thuốc trong phiếu y bạ */}
+              {parseClinicalRecord(selectedRecord.notes, selectedRecord.serviceName).prescription?.length > 0 && (
+                <div>
+                  <h5 className="font-bold text-slate-800 uppercase mb-1.5">Toa thuốc điều trị:</h5>
+                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead className="bg-slate-50 text-[10px] uppercase text-slate-500 border-b border-slate-200">
+                        <tr>
+                          <th className="py-2 px-3">Tên thuốc</th>
+                          <th className="py-2 px-3">Số lượng</th>
+                          <th className="py-2 px-3">Liều dùng</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {parseClinicalRecord(selectedRecord.notes, selectedRecord.serviceName).prescription.map((m, idx) => (
+                          <tr key={idx}>
+                            <td className="py-2 px-3 font-semibold text-slate-800">{m.name}</td>
+                            <td className="py-2 px-3 font-mono">{m.qty}</td>
+                            <td className="py-2 px-3 text-blue-700">{m.dose}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Lời dặn & Hẹn tái khám */}
               <div>
                 <h5 className="font-bold text-slate-800 uppercase mb-1">Dặn dò & Hướng dẫn phục hồi:</h5>
                 <p className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-slate-700 leading-relaxed">
-                  {getAdviceForService(selectedRecord.serviceName, selectedRecord.notes)}
+                  {parseClinicalRecord(selectedRecord.notes, selectedRecord.serviceName).advice}
                 </p>
+                {parseClinicalRecord(selectedRecord.notes, selectedRecord.serviceName).reExam && (
+                  <div className="mt-2 text-xs font-semibold text-emerald-800 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
+                    Lịch hẹn tái khám: {parseClinicalRecord(selectedRecord.notes, selectedRecord.serviceName).reExam}
+                  </div>
+                )}
               </div>
 
               {/* Chữ ký */}

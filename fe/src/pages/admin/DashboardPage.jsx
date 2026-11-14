@@ -23,6 +23,7 @@ import {
   CalendarCheck
 } from 'lucide-react';
 import { appointmentApi } from '../../services/appointmentApi';
+import { CompleteAppointmentModal } from '../../components/admin/CompleteAppointmentModal';
 
 const DashboardPage = () => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -41,6 +42,11 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [feedbackMessage, setFeedbackMessage] = useState(null);
+
+  // Modal Hoàn tất ca khám & Kê đơn thuốc
+  const [completeModalOpen, setCompleteModalOpen] = useState(false);
+  const [appointmentToComplete, setAppointmentToComplete] = useState(null);
+  const [completingApt, setCompletingApt] = useState(false);
 
   // Helper tính ngày hôm nay theo giờ địa phương YYYY-MM-DD
   const getTodayDateString = () => {
@@ -144,6 +150,37 @@ const DashboardPage = () => {
         showNotification('error', err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật.');
       } finally {
         setUpdatingId(null);
+      }
+    };
+
+    // Mở modal hoàn tất ca khám & kê đơn thuốc
+    const handleOpenCompleteModal = (apt) => {
+      setAppointmentToComplete(apt);
+      setCompleteModalOpen(true);
+    };
+
+    // Xác nhận lưu bệnh án và chuyển trạng thái COMPLETED
+    const handleConfirmCompletion = async (aptId, clinicalNotes) => {
+      try {
+        setCompletingApt(true);
+        await appointmentApi.updateAppointmentStatus(aptId, { 
+          status: 'COMPLETED', 
+          notes: clinicalNotes 
+        });
+        showNotification('success', 'Đã lưu đơn thuốc & hoàn tất ca khám thành công!');
+        setAppointments((prev) =>
+          prev.map((apt) => (apt.id === aptId ? { ...apt, status: 'COMPLETED', notes: clinicalNotes } : apt))
+        );
+        const statsRes = await appointmentApi.getAppointmentStats();
+        const statsData = statsRes?.data || statsRes;
+        if (statsData) setStats(statsData);
+        setCompleteModalOpen(false);
+        setAppointmentToComplete(null);
+      } catch (err) {
+        console.error('Không thể hoàn tất ca khám:', err);
+        showNotification('error', err.response?.data?.message || 'Có lỗi xảy ra khi hoàn tất ca khám.');
+      } finally {
+        setCompletingApt(false);
       }
     };
 
@@ -634,11 +671,12 @@ const DashboardPage = () => {
                                             apt.status === 'CONFIRMED' && (
                                               <button
                                                 disabled={updatingId === apt.id}
-                                                onClick={() => handleUpdateStatus(apt.id, 'COMPLETED')}
-                                                title="Hoàn tất ca khám này"
-                                                className="px-2.5 py-1 text-xs text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-200 font-medium cursor-pointer"
+                                                onClick={() => handleOpenCompleteModal(apt)}
+                                                title="Hoàn tất ca khám & kê đơn thuốc cho bệnh nhân"
+                                                className="px-2.5 py-1 text-xs text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-200 font-semibold cursor-pointer flex items-center gap-1 shadow-2xs"
                                               >
-                                                {updatingId === apt.id ? 'Đang lưu...' : 'Hoàn thành'}
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                                                <span>Hoàn thành</span>
                                               </button>
                                             )
                                           }
@@ -734,8 +772,20 @@ const DashboardPage = () => {
                           </div>
                         </div>
                       </div>
+
+                      {/* Modal Hoàn Tất Ca Khám & Kê Đơn Thuốc */}
+                      <CompleteAppointmentModal
+                        isOpen={completeModalOpen}
+                        onClose={() => {
+                          setCompleteModalOpen(false);
+                          setAppointmentToComplete(null);
+                        }}
+                        appointment={appointmentToComplete}
+                        onComplete={handleConfirmCompletion}
+                        isSubmitting={completingApt}
+                      />
                     </div>
                     );
 };
 
-                    export default DashboardPage;
+export default DashboardPage;

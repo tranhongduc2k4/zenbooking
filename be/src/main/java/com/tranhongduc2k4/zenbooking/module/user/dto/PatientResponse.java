@@ -26,3 +26,4 @@ public class PatientResponse {
     private String allergies;
     private String membershipTier;
 }
+

@@ -24,9 +24,14 @@ import {
   Sparkles,
   Award,
   CalendarPlus,
-  Receipt
+  Receipt,
+  Edit3,
+  Save,
+  Droplet,
+  HeartPulse
 } from 'lucide-react';
 import { patientApi } from '../../services/patientApi';
+import { parseClinicalRecord } from '../../utils/clinicalHelpers';
 
 const PatientsManagementPage = () => {
   const [patients, setPatients] = useState([]);
@@ -43,6 +48,13 @@ const PatientsManagementPage = () => {
 
   // Modal phóng to ảnh X-Quang
   const [previewImage, setPreviewImage] = useState(null);
+
+  // Chỉnh sửa chỉ số y tế (Nhóm máu & Tiền sử dị ứng)
+  const [isEditingMedical, setIsEditingMedical] = useState(false);
+  const [editBloodType, setEditBloodType] = useState('O+');
+  const [editAllergies, setEditAllergies] = useState('Không ghi nhận');
+  const [savingMedical, setSavingMedical] = useState(false);
+  const [medicalFeedback, setMedicalFeedback] = useState(null);
 
   const fetchPatients = async () => {
     try {
@@ -64,6 +76,9 @@ const PatientsManagementPage = () => {
   // Mở hồ sơ bệnh án chi tiết
   const handleOpenPatientRecord = async (patient) => {
     setSelectedPatient(patient);
+    setEditBloodType(patient.bloodType || 'O+');
+    setEditAllergies(patient.allergies || 'Không ghi nhận');
+    setIsEditingMedical(false);
     setShowDrawer(true);
     setActiveTab('HISTORY');
     try {
@@ -76,6 +91,40 @@ const PatientsManagementPage = () => {
       setPatientHistory([]);
     } finally {
       setLoadingHistory(false);
+    }
+  };
+
+  // Cập nhật chỉ số y tế của bệnh nhân vào Database
+  const handleSaveMedicalProfile = async (e) => {
+    if (e) e.preventDefault();
+    if (!selectedPatient) return;
+    try {
+      setSavingMedical(true);
+      await patientApi.updateMedicalProfile(selectedPatient.phone, {
+        bloodType: editBloodType,
+        allergies: editAllergies
+      });
+      // Cập nhật state selectedPatient
+      setSelectedPatient(prev => ({
+        ...prev,
+        bloodType: editBloodType,
+        allergies: editAllergies
+      }));
+      // Cập nhật danh sách bệnh nhân ngoài bảng
+      setPatients(prev => prev.map(p => 
+        p.phone === selectedPatient.phone 
+          ? { ...p, bloodType: editBloodType, allergies: editAllergies }
+          : p
+      ));
+      setIsEditingMedical(false);
+      setMedicalFeedback({ type: 'success', text: 'Cập nhật chỉ số y tế thành công!' });
+      setTimeout(() => setMedicalFeedback(null), 3000);
+    } catch (err) {
+      console.error('Lỗi khi cập nhật chỉ số y tế:', err);
+      setMedicalFeedback({ type: 'error', text: 'Không thể cập nhật chỉ số y tế.' });
+      setTimeout(() => setMedicalFeedback(null), 3000);
+    } finally {
+      setSavingMedical(false);
     }
   };
 
@@ -487,24 +536,128 @@ const PatientsManagementPage = () => {
               </button>
             </div>
 
-            {/* Thông tin y tế nhanh */}
-            <div className="p-4 bg-slate-50 border-b border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div>
-                <span className="text-slate-400 text-[11px] block">Nhóm máu:</span>
-                <strong className="text-slate-800 font-semibold">{selectedPatient.bloodType || 'O+'}</strong>
+            {/* Thông báo cập nhật y bạ thành công */}
+            {medicalFeedback && (
+              <div className={`px-5 py-2.5 text-xs font-semibold flex items-center justify-between ${
+                medicalFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-b border-emerald-200' : 'bg-rose-50 text-rose-800 border-b border-rose-200'
+              }`}>
+                <span>{medicalFeedback.text}</span>
               </div>
-              <div>
-                <span className="text-slate-400 text-[11px] block">Tiền sử dị ứng:</span>
-                <strong className="text-slate-800 font-semibold">{selectedPatient.allergies || 'Không ghi nhận'}</strong>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[11px] block">Tổng số lần khám:</span>
-                <strong className="text-blue-700 font-bold">{selectedPatient.totalVisits} lần</strong>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[11px] block">Lần gần nhất:</span>
-                <strong className="text-slate-800 font-semibold">{selectedPatient.lastVisitDate ? String(selectedPatient.lastVisitDate) : 'Chưa xếp'}</strong>
-              </div>
+            )}
+
+            {/* Thông tin y tế nhanh & Chỉnh sửa hồ sơ bệnh nhân */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200">
+              {isEditingMedical ? (
+                <form onSubmit={handleSaveMedicalProfile} className="space-y-3">
+                  <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5 uppercase">
+                      <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+                      Chỉnh sửa chỉ số sức khỏe của bệnh nhân
+                    </span>
+                    <span className="text-[11px] text-slate-400">Dữ liệu được lưu vĩnh viễn vào hồ sơ</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="block text-slate-600 font-semibold mb-1 flex items-center gap-1">
+                        <Droplet className="w-3.5 h-3.5 text-rose-500" />
+                        Nhóm máu:
+                      </label>
+                      <select
+                        value={editBloodType}
+                        onChange={(e) => setEditBloodType(e.target.value)}
+                        className="w-full p-2 bg-white rounded-lg border border-slate-300 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        <option value="O+">O+ (Phổ biến)</option>
+                        <option value="O-">O- (Hiếm)</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB- (Rất hiếm)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-600 font-semibold mb-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                        Tiền sử dị ứng & Cảnh báo:
+                      </label>
+                      <input
+                        type="text"
+                        value={editAllergies}
+                        onChange={(e) => setEditAllergies(e.target.value)}
+                        placeholder="VD: Dị ứng Penicillin, Paracetamol, Aspirin..."
+                        className="w-full p-2 bg-white rounded-lg border border-slate-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingMedical(false)}
+                      disabled={savingMedical}
+                      className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200 rounded-lg transition cursor-pointer"
+                    >
+                      Hủy bỏ
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingMedical}
+                      className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      {savingMedical ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Đang lưu...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-3.5 h-3.5" />
+                          <span>Lưu chỉ số y bạ</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs items-center">
+                  <div>
+                    <span className="text-slate-400 text-[11px] block">Nhóm máu:</span>
+                    <strong className="text-rose-700 font-bold flex items-center gap-1 mt-0.5">
+                      <Droplet className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
+                      {selectedPatient.bloodType || 'O+'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[11px] block">Tiền sử dị ứng:</span>
+                    <strong className="text-amber-800 font-semibold block mt-0.5 truncate" title={selectedPatient.allergies}>
+                      {selectedPatient.allergies || 'Không ghi nhận'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[11px] block">Tổng số lần khám:</span>
+                    <strong className="text-blue-700 font-bold block mt-0.5">{selectedPatient.totalVisits} lần ({selectedPatient.completedVisits} xong)</strong>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-slate-400 text-[11px] block">Lần gần nhất:</span>
+                      <strong className="text-slate-800 font-semibold block mt-0.5">{selectedPatient.lastVisitDate ? String(selectedPatient.lastVisitDate) : 'Chưa xếp'}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingMedical(true)}
+                      className="px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition flex items-center gap-1 cursor-pointer ml-auto"
+                      title="Chỉnh sửa nhóm máu và tiền sử dị ứng"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      <span>Sửa</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Modal Tabs */}
@@ -556,7 +709,7 @@ const PatientsManagementPage = () => {
                     </div>
                   ) : (
                     patientHistory.map((apt, i) => {
-                      const prescription = getPrescriptionForService(apt.serviceName);
+                      const clinical = parseClinicalRecord(apt.notes, apt.serviceName);
                       return (
                         <div key={apt.id || i} className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-3">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2 border-slate-100">
@@ -585,39 +738,55 @@ const PatientsManagementPage = () => {
                             </span>
                           </div>
 
-                          {apt.notes && (
-                            <div className="text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-slate-700">
-                              <span className="font-semibold text-slate-900 block mb-0.5">Chẩn đoán / Ghi chú:</span>
-                              {apt.notes}
+                          {/* Chẩn đoán lâm sàng */}
+                          <div className="text-xs bg-slate-50 p-3 rounded-lg border border-slate-100 text-slate-700 space-y-1">
+                            <div>
+                              <strong className="text-slate-900 block font-semibold">Chẩn đoán & Thủ thuật đã làm:</strong>
+                              <span className="text-slate-700">{clinical.diagnosis}</span>
                             </div>
-                          )}
+                            {clinical.advice && (
+                              <div className="pt-1 border-t border-slate-200/60 mt-1">
+                                <strong className="text-slate-900 block font-semibold text-[11px]">Dặn dò sau khám:</strong>
+                                <span className="text-slate-600">{clinical.advice}</span>
+                              </div>
+                            )}
+                            {clinical.reExam && (
+                              <div className="pt-1 text-emerald-700 font-medium">
+                                <strong>Lịch hẹn tái khám:</strong> {clinical.reExam}
+                              </div>
+                            )}
+                          </div>
 
                           {/* Toa thuốc điện tử */}
-                          <div>
-                            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
-                              Đơn thuốc đã kê:
-                            </span>
-                            <div className="overflow-x-auto rounded-lg border border-slate-200 text-xs">
-                              <table className="w-full text-left">
-                                <thead className="bg-slate-50 text-[10px] text-slate-500 uppercase">
-                                  <tr>
-                                    <th className="py-1.5 px-2.5">Tên thuốc</th>
-                                    <th className="py-1.5 px-2.5">Số lượng</th>
-                                    <th className="py-1.5 px-2.5">Cách dùng</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                  {prescription.slice(0, 2).map((med, idx) => (
-                                    <tr key={idx}>
-                                      <td className="py-1.5 px-2.5 font-medium text-slate-800">{med.name}</td>
-                                      <td className="py-1.5 px-2.5 text-slate-600">{med.qty}</td>
-                                      <td className="py-1.5 px-2.5 text-blue-700">{med.dose}</td>
+                          {clinical.prescription && clinical.prescription.length > 0 && (
+                            <div>
+                              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                                Đơn thuốc đã kê ({clinical.prescription.length} loại):
+                              </span>
+                              <div className="overflow-x-auto rounded-lg border border-slate-200 text-xs">
+                                <table className="w-full text-left">
+                                  <thead className="bg-slate-50 text-[10px] text-slate-500 uppercase">
+                                    <tr>
+                                      <th className="py-1.5 px-2.5">Tên thuốc</th>
+                                      <th className="py-1.5 px-2.5">Số lượng</th>
+                                      <th className="py-1.5 px-2.5">Liều dùng & Hướng dẫn</th>
+                                      <th className="py-1.5 px-2.5">Chỉ định</th>
                                     </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {clinical.prescription.map((med, idx) => (
+                                      <tr key={idx}>
+                                        <td className="py-1.5 px-2.5 font-medium text-slate-800">{med.name}</td>
+                                        <td className="py-1.5 px-2.5 text-slate-600 font-mono">{med.qty}</td>
+                                        <td className="py-1.5 px-2.5 text-blue-700">{med.dose}</td>
+                                        <td className="py-1.5 px-2.5 text-slate-500">{med.usage || '-'}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       );
                     })
@@ -731,3 +900,4 @@ const PatientsManagementPage = () => {
 };
 
 export default PatientsManagementPage;
+

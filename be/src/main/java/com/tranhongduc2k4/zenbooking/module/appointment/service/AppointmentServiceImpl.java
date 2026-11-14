@@ -208,6 +208,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (request.getCancellationReason() != null) {
             apt.setCancellationReason(request.getCancellationReason());
         }
+        if (request.getNotes() != null) {
+            apt.setNotes(request.getNotes());
+        }
 
         // Nếu admin/bác sĩ gán bác sĩ phụ trách ca
         if (request.getDoctorId() != null) {

@@ -53,8 +53,8 @@ public class PatientController {
                     .lastVisitDate(latest != null ? latest.getAppointmentDate() : null)
                     .lastServiceName(latest != null ? latest.getServiceName() : "Khám tổng quát")
                     .lastDoctorName(latest != null ? latest.getDoctorName() : "Đội ngũ chuyên khoa")
-                    .bloodType("O+")
-                    .allergies("Không ghi nhận")
+                    .bloodType(u.getBloodType() != null ? u.getBloodType() : "O+")
+                    .allergies(u.getAllergies() != null ? u.getAllergies() : "Không ghi nhận")
                     .membershipTier(tier)
                     .build();
 
@@ -123,4 +123,32 @@ public class PatientController {
 
         return ResponseEntity.ok(list);
     }
+
+    /**
+     * Cập nhật thông tin chỉ số y tế (nhóm máu, tiền sử dị ứng) cho bệnh nhân
+     */
+    @PutMapping("/{phone}/medical-profile")
+    public ResponseEntity<Map<String, Object>> updateMedicalProfile(
+            @PathVariable String phone,
+            @RequestBody Map<String, String> body
+    ) {
+        String bloodType = body.get("bloodType");
+        String allergies = body.get("allergies");
+
+        User user = userRepository.findByPhone(phone).orElse(null);
+        if (user != null) {
+            if (bloodType != null) user.setBloodType(bloodType.trim());
+            if (allergies != null) user.setAllergies(allergies.trim());
+            userRepository.save(user);
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("phone", phone);
+        response.put("bloodType", bloodType != null ? bloodType : "O+");
+        response.put("allergies", allergies != null ? allergies : "Không ghi nhận");
+        response.put("message", "Cập nhật chỉ số y tế bệnh nhân thành công");
+
+        return ResponseEntity.ok(response);
+    }
 }
+

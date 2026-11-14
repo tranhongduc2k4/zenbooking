@@ -43,4 +43,10 @@ public class User {
 
     @Column(name = "specialty", length = 200)
     private String specialty;
+
+    @Column(name = "blood_type", length = 10)
+    private String bloodType;
+
+    @Column(name = "allergies", length = 255)
+    private String allergies;
 }

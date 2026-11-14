@@ -595,7 +595,7 @@ const DashboardPage = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                    <th className="py-3.5 px-5 min-w-[210px]">Bệnh nhân & Liên hệ</th>
+                    <th className="py-3.5 px-5 min-w-[220px]">Bệnh nhân & Liên hệ</th>
                     <th className="py-3.5 px-4 min-w-[170px]">Dịch vụ & Bác sĩ</th>
                     <th className="py-3.5 px-4 min-w-[130px] whitespace-nowrap">Thời gian hẹn</th>
                     <th className="py-3.5 px-4 min-w-[130px] whitespace-nowrap">Trạng thái</th>
@@ -632,25 +632,28 @@ const DashboardPage = () => {
                         key={apt.id}
                         className="hover:bg-slate-50/70 transition-colors group"
                       >
-                        {/* Cột 1: Bệnh nhân & Liên hệ (Gộp SĐT và Mã phiếu để giải phóng không gian) */}
+                        {/* Cột 1: Bệnh nhân & Liên hệ (Hiển thị đầy đủ SĐT không bao giờ bị cắt số) */}
                         <td className="py-3.5 px-5">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0">
+                            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0">
                               {apt.patientName ? apt.patientName.charAt(0) : 'BN'}
                             </div>
                             <div className="min-w-0">
-                              <div className="font-semibold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors truncate">
+                              <div className="font-semibold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors">
                                 {apt.patientName}
                               </div>
-                              <div className="flex items-center gap-2 text-xs text-slate-600 mt-0.5">
-                                <span className="font-mono text-[11px] font-bold text-blue-600 shrink-0">
-                                  {apt.appointmentCode}
-                                </span>
-                                <span>•</span>
-                                <span className="flex items-center gap-1 text-slate-600 font-medium truncate">
-                                  <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                              <div className="flex items-center gap-1.5 text-xs text-slate-700 mt-1 whitespace-nowrap">
+                                <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                <a
+                                  href={apt.patientPhone ? `tel:${apt.patientPhone}` : undefined}
+                                  className="font-semibold text-slate-800 hover:text-blue-600 hover:underline tracking-wide"
+                                  title="Gọi số bệnh nhân"
+                                >
                                   {apt.patientPhone || 'Chưa cập nhật SĐT'}
-                                </span>
+                                </a>
+                              </div>
+                              <div className="text-[11px] font-mono font-medium text-slate-400 mt-0.5">
+                                {apt.appointmentCode}
                               </div>
                             </div>
                           </div>
@@ -760,8 +763,8 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          {/* Cột phụ: Ghế nha & Phòng khám */}
-          <div className="space-y-6">
+          {/* Cột phụ: Ghế nha & Phòng khám (Chiếm 3/12 cột, cân đối trên màn hình lớn) */}
+          <div className="xl:col-span-3 space-y-6">
             {/* Widget 1: Tình trạng Ghế nha & Phòng điều trị */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
               <div className="flex items-center justify-between mb-4">

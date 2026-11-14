@@ -10,19 +10,20 @@ import {
   Settings, 
   LogOut, 
   Bell, 
-  Search, 
   Menu, 
   X, 
   PlusCircle, 
   ExternalLink,
 } from 'lucide-react';
 import UserAccountDropdown from '../components/UserAccountDropdown';
+import { appointmentApi } from '../services/appointmentApi';
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
+  const [stats, setStats] = useState(null);
 
   useEffect(() => {
     try {
@@ -34,6 +35,15 @@ const AdminLayout = () => {
       console.error('Không thể đọc thông tin user:', e);
     }
   }, []);
+
+  useEffect(() => {
+    appointmentApi.getAppointmentStats()
+      .then(res => {
+        const data = res?.data || res;
+        if (data) setStats(data);
+      })
+      .catch(err => console.warn('Không thể tải stats cho AdminLayout:', err));
+  }, [location.pathname]);
 
   const userRole = localStorage.getItem('user_role') || currentUser?.role;
   const isDoctor = userRole === 'ROLE_DOCTOR' || userRole === 'DOCTOR';
@@ -59,7 +69,7 @@ const AdminLayout = () => {
       href: '/admin/appointments', 
       icon: Calendar,
       description: isDoctor ? 'Lịch trực của bác sĩ' : 'Toàn bộ lịch hẹn',
-      badge: isDoctor ? '3' : '8',
+      badge: stats ? String(stats.total) : null,
       roles: ['ROLE_ADMIN', 'ADMIN', 'ROLE_DOCTOR', 'DOCTOR']
     },
     { 
@@ -221,7 +231,7 @@ const AdminLayout = () => {
                 {currentUser?.fullName || (isDoctor ? 'BS. Chuyên Khoa' : 'Admin Phòng Khám')}
               </div>
               <div className="text-[11px] text-slate-300 truncate">
-                {isDoctor ? 'Bác sĩ điều trị' : 'Quản lý trưởng'}
+                {isDoctor ? 'Bác sĩ điều trị' : 'Quản trị viên'}
               </div>
             </div>
             <button 
@@ -259,23 +269,13 @@ const AdminLayout = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Quick Search */}
-            <div className="relative hidden md:block">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                placeholder={isDoctor ? "Tìm bệnh nhân..." : "Tìm bệnh nhân, mã hẹn..."}
-                className="w-56 pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-              />
-            </div>
-
             {/* New Appointment CTA */}
             <Link
               to="/admin/appointments"
-              className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95"
             >
               <PlusCircle className="w-4 h-4" />
-              Tạo lịch hẹn
+              <span>Tạo lịch hẹn</span>
             </Link>
 
             {/* Notifications */}

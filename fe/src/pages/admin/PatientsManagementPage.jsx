@@ -13,14 +13,12 @@ import {
   AlertCircle, 
   ShieldCheck, 
   Activity, 
-  Eye, 
   Printer, 
   RefreshCw, 
   Plus, 
   ChevronRight, 
   X, 
   Pill, 
-  Image as ImageIcon,
   Sparkles,
   Award,
   CalendarPlus,
@@ -44,10 +42,7 @@ const PatientsManagementPage = () => {
   const [patientHistory, setPatientHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showDrawer, setShowDrawer] = useState(false);
-  const [activeTab, setActiveTab] = useState('HISTORY'); // 'HISTORY', 'NOTES', 'XRAY'
-
-  // Modal phóng to ảnh X-Quang
-  const [previewImage, setPreviewImage] = useState(null);
+  const [activeTab, setActiveTab] = useState('HISTORY'); // 'HISTORY', 'NOTES'
 
   // Chỉnh sửa chỉ số y tế (Nhóm máu & Tiền sử dị ứng)
   const [isEditingMedical, setIsEditingMedical] = useState(false);
@@ -682,16 +677,6 @@ const PatientsManagementPage = () => {
               >
                 Ghi chú điều trị & Bệnh án
               </button>
-              <button
-                onClick={() => setActiveTab('XRAY')}
-                className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
-                  activeTab === 'XRAY'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Phim X-Quang & Tư liệu
-              </button>
             </div>
 
             {/* Tab Contents */}
@@ -811,42 +796,6 @@ const PatientsManagementPage = () => {
                   </div>
                 </div>
               )}
-
-              {activeTab === 'XRAY' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div 
-                    onClick={() => setPreviewImage('https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=800&q=80')}
-                    className="group relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-900 cursor-pointer"
-                  >
-                    <img
-                      src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=400&q=80"
-                      alt="Phim X-Quang Panorex"
-                      className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-all"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent flex items-end p-2">
-                      <span className="text-xs font-semibold text-white flex items-center gap-1">
-                        <Eye className="w-3.5 h-3.5 text-cyan-300" /> Phim X-Quang Panorex toàn cảnh
-                      </span>
-                    </div>
-                  </div>
-
-                  <div 
-                    onClick={() => setPreviewImage('https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=800&q=80')}
-                    className="group relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-900 cursor-pointer"
-                  >
-                    <img
-                      src="https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=400&q=80"
-                      alt="Ảnh chụp nội soi cung hàm"
-                      className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-all"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent flex items-end p-2">
-                      <span className="text-xs font-semibold text-white flex items-center gap-1">
-                        <Eye className="w-3.5 h-3.5 text-cyan-300" /> Ảnh chụp nội soi cung hàm
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Modal Footer */}
@@ -870,28 +819,6 @@ const PatientsManagementPage = () => {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Phóng To Ảnh */}
-      {previewImage && (
-        <div 
-          onClick={() => setPreviewImage(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn cursor-pointer"
-        >
-          <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center">
-            <button
-              onClick={() => setPreviewImage(null)}
-              className="absolute -top-10 right-0 text-white hover:text-slate-300 p-2"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <img
-              src={previewImage}
-              alt="Phóng to tư liệu y khoa"
-              className="max-h-[85vh] w-auto rounded-2xl shadow-2xl object-contain border border-white/20"
-            />
           </div>
         </div>
       )}

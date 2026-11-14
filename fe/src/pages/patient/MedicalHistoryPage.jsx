@@ -18,12 +18,10 @@ import {
   ChevronRight, 
   ShieldCheck, 
   Pill, 
-  Eye, 
   CalendarPlus, 
   RefreshCw,
   HeartPulse,
   Activity,
-  Image as ImageIcon,
   Receipt,
   FileCheck2,
   X
@@ -41,9 +39,6 @@ const MedicalHistoryPage = () => {
   // Modal xem chi tiết phiếu y bạ / In hóa đơn
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-
-  // Modal xem ảnh X-Quang phóng to
-  const [previewImage, setPreviewImage] = useState(null);
 
   useEffect(() => {
     try {
@@ -514,47 +509,6 @@ const MedicalHistoryPage = () => {
                           </div>
                         </div>
                       )}
-
-                      {/* Tư liệu hình ảnh & Cận lâm sàng */}
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                          <ImageIcon className="w-4 h-4 text-cyan-600" />
-                          Kết quả phim X-Quang & Tư liệu lâm sàng:
-                        </h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          <div 
-                            onClick={() => setPreviewImage('https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=800&q=80')}
-                            className="group/img relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-900 cursor-pointer"
-                          >
-                            <img
-                              src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=400&q=80"
-                              alt="Phim X-Quang Panorex"
-                              className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-200 opacity-90 group-hover/img:opacity-100"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent flex items-end p-2">
-                              <span className="text-[11px] font-semibold text-white flex items-center gap-1">
-                                <Eye className="w-3 h-3 text-cyan-300" /> Phim X-Quang Panorex
-                              </span>
-                            </div>
-                          </div>
-
-                          <div 
-                            onClick={() => setPreviewImage('https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=800&q=80')}
-                            className="group/img relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-900 cursor-pointer"
-                          >
-                            <img
-                              src="https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=400&q=80"
-                              alt="Hình ảnh khoang miệng sau điều trị"
-                              className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-200 opacity-90 group-hover/img:opacity-100"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent flex items-end p-2">
-                              <span className="text-[11px] font-semibold text-white flex items-center gap-1">
-                                <Eye className="w-3 h-3 text-cyan-300" /> Ảnh chụp nội soi hàm
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -715,28 +669,6 @@ const MedicalHistoryPage = () => {
                 Đóng
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal 2: Xem ảnh Phóng To */}
-      {previewImage && (
-        <div 
-          onClick={() => setPreviewImage(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn cursor-pointer"
-        >
-          <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center">
-            <button
-              onClick={() => setPreviewImage(null)}
-              className="absolute -top-10 right-0 text-white hover:text-slate-300 p-2"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <img
-              src={previewImage}
-              alt="Phóng to tư liệu y khoa"
-              className="max-h-[85vh] w-auto rounded-2xl shadow-2xl object-contain border border-white/20"
-            />
           </div>
         </div>
       )}

@@ -131,3 +131,4 @@ export const formatClinicalNotes = ({ diagnosis, advice, reExam, prescription })
     prescription: Array.isArray(prescription) ? prescription : []
   });
 };
+

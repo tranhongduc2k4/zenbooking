@@ -324,3 +324,4 @@ export const CompleteAppointmentModal = ({ isOpen, onClose, appointment, onCompl
     </div>
   );
 };
+

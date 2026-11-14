@@ -907,3 +907,4 @@ const DoctorsManagementPage = () => {
 };
 
 export default DoctorsManagementPage;
+

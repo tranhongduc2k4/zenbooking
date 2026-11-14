@@ -25,22 +25,22 @@ import {
 import { appointmentApi } from '../../services/appointmentApi';
 
 // ==========================================
-// 1. COMPONENT: HERO BANNER (~120px)
+// 1. COMPONENT: HERO BANNER (Gọn gàng ~80px)
 // ==========================================
 const HeroBanner = ({ userName, onRefresh, loading }) => {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 text-white shadow-xs p-5 sm:p-6 min-h-[110px] flex items-center">
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs px-5 py-4 min-h-[82px] flex items-center justify-between">
       <div className="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-white/10 blur-xl pointer-events-none" />
       <div className="absolute -bottom-10 right-32 w-32 h-32 rounded-full bg-cyan-400/15 blur-lg pointer-events-none" />
 
-      <div className="relative z-10 w-full flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="relative z-10 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         {/* Left: Greeting */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-[12px] font-semibold text-blue-100 uppercase tracking-wider">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2 text-[11px] font-semibold text-blue-100 uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
-            <span>Cổng Thông Tin Bệnh Nhân · ZenBooking Dental</span>
+            <span>ZenBooking Dental</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white">
             Chào mừng {userName || 'Bệnh nhân'} trở lại! 👋
           </h1>
           <p className="text-[13px] text-blue-100 font-normal leading-relaxed">
@@ -48,25 +48,18 @@ const HeroBanner = ({ userName, onRefresh, loading }) => {
           </p>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        {/* Right: Refresh action only (No duplicate booking button) */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={onRefresh}
             disabled={loading}
             aria-label="Làm mới dữ liệu"
-            className="inline-flex items-center justify-center gap-2 px-3.5 py-2 text-[13px] font-medium text-white bg-white/15 hover:bg-white/25 active:bg-white/30 border border-white/20 rounded-xl transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-white/40 disabled:opacity-60 cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 px-3.5 py-2 text-[13px] font-semibold text-white bg-white/15 hover:bg-white/25 active:bg-white/30 border border-white/25 rounded-xl transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-white/40 disabled:opacity-60 cursor-pointer shadow-xs"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Làm mới</span>
           </button>
-          <Link
-            to="/booking"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-[13px] font-semibold text-blue-700 bg-white hover:bg-blue-50 active:bg-blue-100 rounded-xl shadow-xs transition-all duration-150 hover:scale-[1.01] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-white"
-          >
-            <CalendarPlus className="w-4 h-4 text-blue-600" />
-            <span>Đặt lịch khám</span>
-          </Link>
         </div>
       </div>
     </div>
@@ -74,9 +67,9 @@ const HeroBanner = ({ userName, onRefresh, loading }) => {
 };
 
 // ==========================================
-// 2. COMPONENT: STAT CARD (Hàng 4 thẻ)
+// 2. COMPONENT: STAT CARD (Hàng 4 thẻ đồng bộ phẳng)
 // ==========================================
-const StatCard = ({ title, icon: Icon, iconBg, iconColor, value, unit, statusText, statusColor, statusBadge, loading }) => {
+const StatCard = ({ title, icon: Icon, iconBg, iconColor, value, unit, statusText, statusColor, statusBadge, statusAction, loading }) => {
   if (loading) {
     return (
       <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs animate-pulse flex flex-col justify-between min-h-[148px]">
@@ -93,7 +86,7 @@ const StatCard = ({ title, icon: Icon, iconBg, iconColor, value, unit, statusTex
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs hover:shadow-md transition-shadow duration-150 flex flex-col justify-between min-h-[148px]">
+    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs hover:border-slate-300 transition-colors duration-150 flex flex-col justify-between min-h-[148px]">
       <div className="flex items-center justify-between">
         <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-500">
           {title}
@@ -116,11 +109,18 @@ const StatCard = ({ title, icon: Icon, iconBg, iconColor, value, unit, statusTex
         </div>
       </div>
 
-      <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 text-[12px] truncate">
-        {statusBadge}
-        <span className={`font-medium truncate ${statusColor || 'text-slate-600'}`}>
-          {statusText}
-        </span>
+      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1.5 text-[12px] min-h-[26px]">
+        <div className="flex items-center gap-1.5 truncate">
+          {statusBadge}
+          <span className={`font-medium truncate ${statusColor || 'text-slate-600'}`}>
+            {statusText}
+          </span>
+        </div>
+        {statusAction && (
+          <div className="shrink-0">
+            {statusAction}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -176,35 +176,35 @@ const AppointmentsPanel = ({
     switch (status) {
       case 'PENDING':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-            Chờ phòng khám duyệt
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-[#FFF1DB] text-[#9A5B00] border border-[#FFE1B3]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] animate-pulse shrink-0" />
+            Chờ duyệt
           </span>
         );
       case 'CONFIRMED':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-            Đã xác nhận
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-[#DCE7FF] text-[#1747AE] border border-[#BED2FE]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#1D5FE0] shrink-0" />
+            Đã duyệt
           </span>
         );
       case 'COMPLETED':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-            <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            Đã hoàn thành
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-[#E2F4E8] text-[#0B6B3A] border border-[#BCE8CB]">
+            <CheckCircle2 className="w-3.5 h-3.5 text-[#0B6B3A] shrink-0" />
+            Hoàn thành
           </span>
         );
       case 'CANCELLED':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium bg-rose-50 text-rose-700 border border-rose-200">
-            <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-            Đã hủy hẹn
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-[#FCE9E9] text-[#A12626] border border-[#F7C6C6]">
+            <XCircle className="w-3.5 h-3.5 text-[#A12626] shrink-0" />
+            Đã hủy
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-medium bg-slate-100 text-slate-700">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-slate-100 text-slate-800 border border-slate-200">
             {status}
           </span>
         );
@@ -212,7 +212,7 @@ const AppointmentsPanel = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col h-full overflow-hidden">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col h-full overflow-hidden">
       {/* Header Panel */}
       <div className="p-5 border-b border-slate-100 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -225,15 +225,15 @@ const AppointmentsPanel = ({
             </p>
           </div>
 
-          {/* Ô tìm kiếm */}
+          {/* Ô tìm kiếm với độ tương phản cao */}
           <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Tìm dịch vụ, bác sĩ, mã lịch..."
-              className="w-full pl-9 pr-3.5 py-2 text-[13px] bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+              className="w-full pl-9 pr-3.5 py-2 text-[13px] bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 focus:bg-white transition-all"
             />
           </div>
         </div>
@@ -310,12 +310,12 @@ const AppointmentsPanel = ({
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                    <th className="py-3 px-5">Dịch vụ & Mã hẹn</th>
-                    <th className="py-3 px-4">Bác sĩ phụ trách</th>
-                    <th className="py-3 px-4">Thời gian khám</th>
-                    <th className="py-3 px-4">Trạng thái</th>
-                    <th className="py-3 px-4 text-right">Chi phí</th>
-                    <th className="py-3 px-5 text-right">Thao tác</th>
+                    <th className="py-3.5 px-5">Dịch vụ & Mã hẹn</th>
+                    <th className="py-3.5 px-4 min-w-[160px]">Bác sĩ phụ trách</th>
+                    <th className="py-3.5 px-4 min-w-[140px] whitespace-nowrap">Thời gian khám</th>
+                    <th className="py-3.5 px-4 min-w-[140px]">Trạng thái</th>
+                    <th className="py-3.5 px-4 min-w-[120px] text-right">Chi phí</th>
+                    <th className="py-3.5 px-5 min-w-[120px] text-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-[13px]">
@@ -325,24 +325,24 @@ const AppointmentsPanel = ({
                         <div className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors duration-150">
                           {apt.serviceName}
                         </div>
-                        <div className="text-[11px] text-blue-600 font-mono font-bold mt-0.5">
+                        <div className="text-[11px] text-blue-700 font-mono font-bold mt-0.5">
                           {apt.appointmentCode}
                         </div>
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1.5 text-slate-700 font-medium">
-                          <Stethoscope className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                          <span className="truncate max-w-[150px]">{apt.doctorName || 'Bác sĩ chỉ định'}</span>
+                        <div className="flex items-center gap-1.5 text-slate-800 font-medium">
+                          <Stethoscope className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <span className="truncate max-w-[160px]">{apt.doctorName || 'Bác sĩ chỉ định'}</span>
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 font-bold text-slate-900">
                           <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                           <span>{apt.appointmentTime}</span>
                         </div>
-                        <div className="text-[12px] text-slate-500 mt-0.5">
+                        <div className="text-[12px] text-slate-600 font-medium mt-0.5">
                           {apt.appointmentDate}
                         </div>
                       </td>
@@ -352,26 +352,36 @@ const AppointmentsPanel = ({
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
-                        <span className="font-semibold text-slate-800 font-mono">
+                        <span className="font-semibold text-slate-900 tabular-nums">
                           {apt.servicePrice && Number(apt.servicePrice) > 0
                             ? new Intl.NumberFormat('vi-VN').format(apt.servicePrice) + 'đ'
                             : 'Miễn phí'}
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-5 text-right">
+                      <td className="py-3.5 px-5 text-right whitespace-nowrap">
                         {(apt.status === 'PENDING' || apt.status === 'CONFIRMED') ? (
                           <button
                             type="button"
                             onClick={() => onCancelClick(apt)}
-                            className="px-2.5 py-1 text-[12px] font-semibold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 hover:border-rose-600 rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-rose-500/20 cursor-pointer"
+                            className="inline-flex items-center justify-center px-3 py-1.5 text-[12px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-rose-500/20 cursor-pointer"
                           >
                             Hủy ca
                           </button>
+                        ) : apt.status === 'COMPLETED' ? (
+                          <Link
+                            to="/patient/history"
+                            className="inline-flex items-center justify-center px-3 py-1.5 text-[12px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg transition-all duration-150"
+                          >
+                            Xem hồ sơ
+                          </Link>
                         ) : (
-                          <span className="text-[12px] text-slate-400 italic">
-                            {apt.status === 'COMPLETED' ? 'Đã hoàn tất' : 'Đã hủy'}
-                          </span>
+                          <Link
+                            to="/booking"
+                            className="inline-flex items-center justify-center px-3 py-1.5 text-[12px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-all duration-150"
+                          >
+                            Đặt lại
+                          </Link>
                         )}
                       </td>
                     </tr>
@@ -389,7 +399,7 @@ const AppointmentsPanel = ({
                       <div className="font-semibold text-slate-900 text-[14px]">
                         {apt.serviceName}
                       </div>
-                      <div className="text-[11px] text-blue-600 font-mono font-bold mt-0.5">
+                      <div className="text-[11px] text-blue-700 font-mono font-bold mt-0.5">
                         {apt.appointmentCode}
                       </div>
                     </div>
@@ -397,11 +407,11 @@ const AppointmentsPanel = ({
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-[13px] text-slate-600 pt-1">
-                    <div className="flex items-center gap-1.5 font-medium text-slate-800">
-                      <Clock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                    <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                      <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                       <span>{apt.appointmentTime} · {apt.appointmentDate}</span>
                     </div>
-                    <div className="text-right font-mono font-bold text-slate-800">
+                    <div className="text-right font-semibold text-slate-900 tabular-nums">
                       {apt.servicePrice && Number(apt.servicePrice) > 0
                         ? new Intl.NumberFormat('vi-VN').format(apt.servicePrice) + 'đ'
                         : 'Miễn phí'}
@@ -409,20 +419,36 @@ const AppointmentsPanel = ({
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-50 text-[12px]">
-                    <div className="flex items-center gap-1.5 text-slate-600 truncate max-w-[65%]">
-                      <Stethoscope className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <div className="flex items-center gap-1.5 text-slate-800 font-medium truncate max-w-[60%]">
+                      <Stethoscope className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                       <span className="truncate">{apt.doctorName || 'Bác sĩ chỉ định'}</span>
                     </div>
 
-                    {(apt.status === 'PENDING' || apt.status === 'CONFIRMED') && (
-                      <button
-                        type="button"
-                        onClick={() => onCancelClick(apt)}
-                        className="px-2.5 py-1 text-[12px] font-semibold text-rose-600 bg-rose-50 hover:bg-rose-600 hover:text-white rounded-lg transition-colors cursor-pointer"
-                      >
-                        Hủy ca
-                      </button>
-                    )}
+                    <div className="shrink-0">
+                      {(apt.status === 'PENDING' || apt.status === 'CONFIRMED') ? (
+                        <button
+                          type="button"
+                          onClick={() => onCancelClick(apt)}
+                          className="px-3 py-1 text-[12px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-lg transition-colors cursor-pointer"
+                        >
+                          Hủy ca
+                        </button>
+                      ) : apt.status === 'COMPLETED' ? (
+                        <Link
+                          to="/patient/history"
+                          className="px-3 py-1 text-[12px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg transition-colors"
+                        >
+                          Xem hồ sơ
+                        </Link>
+                      ) : (
+                        <Link
+                          to="/booking"
+                          className="px-3 py-1 text-[12px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors"
+                        >
+                          Đặt lại
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -489,14 +515,14 @@ const AppointmentsPanel = ({
 // ==========================================
 const DoctorTipCard = () => {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col justify-between">
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50/60 border-b border-blue-100/70 px-5 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex flex-col justify-between">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50/70 border-b border-blue-100 px-5 py-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs shadow-xs">
             🦷
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-blue-700 uppercase tracking-wider">
+            <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">
               Chăm sóc răng miệng
             </p>
             <h3 className="text-sm font-bold text-slate-900 leading-tight">
@@ -507,13 +533,13 @@ const DoctorTipCard = () => {
       </div>
 
       <div className="p-5 space-y-4">
-        <p className="text-[13px] text-slate-600 leading-relaxed">
+        <p className="text-[13px] text-slate-700 leading-relaxed font-normal">
           Đánh răng đúng cách <strong className="text-slate-900 font-semibold">2 lần mỗi ngày</strong> bằng bàn chải lông mềm và kết hợp chỉ nha khoa sau bữa ăn giúp ngừa sâu răng và bảo vệ men răng tự nhiên tốt nhất.
         </p>
 
-        <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-between text-[12px] border border-slate-100">
-          <span className="text-slate-600 font-medium">Khám răng định kỳ</span>
-          <span className="font-bold text-blue-700 bg-blue-100/70 px-2.5 py-1 rounded-lg">
+        <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-between text-[12px] border border-slate-200">
+          <span className="text-slate-700 font-medium">Khám răng định kỳ</span>
+          <span className="font-bold text-blue-700 bg-blue-100/80 px-2.5 py-1 rounded-lg">
             6 tháng / lần
           </span>
         </div>
@@ -527,7 +553,7 @@ const DoctorTipCard = () => {
 // ==========================================
 const EmergencyCard = () => {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 flex flex-col justify-between space-y-3.5">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between space-y-3.5">
       <div>
         <div className="flex items-center gap-2 mb-1.5">
           <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
@@ -535,14 +561,14 @@ const EmergencyCard = () => {
             Cần hỗ trợ khẩn cấp?
           </h3>
         </div>
-        <p className="text-[13px] text-slate-600 leading-relaxed">
+        <p className="text-[13px] text-slate-700 leading-relaxed font-normal">
           Nếu bạn gặp sự cố nha khoa đột xuất (ê buốt dữ dội, chấn thương răng), vui lòng gọi hotline để được tiếp nhận ưu tiên ngay:
         </p>
       </div>
 
       <a
         href="tel:19008888"
-        className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100/80 active:bg-blue-100 border border-blue-100 rounded-xl transition-all duration-150 group cursor-pointer"
+        className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all duration-150 group cursor-pointer"
       >
         <div className="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform duration-150">
           <Phone className="w-4.5 h-4.5" />
@@ -551,11 +577,11 @@ const EmergencyCard = () => {
           <div className="text-[14px] font-bold text-blue-700 tracking-wide">
             1900 8888
           </div>
-          <div className="text-[11px] text-blue-600 font-medium">
+          <div className="text-[11px] text-blue-800 font-medium">
             Tổng đài cấp cứu nha khoa 24/7 · Miễn phí
           </div>
         </div>
-        <ChevronRight className="w-4 h-4 text-blue-400 group-hover:translate-x-0.5 transition-transform duration-150 shrink-0" />
+        <ChevronRight className="w-4 h-4 text-blue-600 group-hover:translate-x-0.5 transition-transform duration-150 shrink-0" />
       </a>
     </div>
   );
@@ -666,7 +692,7 @@ const PatientDashboard = () => {
         loading={loading}
       />
 
-      {/* 2. Hàng thống kê 4 thẻ bằng nhau (Grid 4 cột, gap 16px) */}
+      {/* 2. Hàng thống kê 4 thẻ bằng nhau (Grid 4 cột, gap 16px, phẳng đồng bộ) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Thẻ 1: Lịch khám kế tiếp */}
         <StatCard
@@ -677,10 +703,24 @@ const PatientDashboard = () => {
           iconColor="text-blue-600"
           value={nextAppointment ? nextAppointment.appointmentTime : 'Chưa có hẹn'}
           unit={nextAppointment ? `· ${nextAppointment.appointmentDate}` : ''}
-          statusText={nextAppointment ? 'Hệ thống đã tiếp nhận' : 'Phòng khám sẵn sàng tiếp đón'}
+          statusText={nextAppointment ? 'Hệ thống đã tiếp nhận' : ''}
           statusColor={nextAppointment ? 'text-emerald-700' : 'text-slate-600'}
           statusBadge={
-            <span className={`w-2 h-2 rounded-full ${nextAppointment ? 'bg-emerald-500' : 'bg-blue-500'} animate-pulse shrink-0`} />
+            nextAppointment ? (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            ) : null
+          }
+          statusAction={
+            nextAppointment ? (
+              <Link to="/patient/history" className="text-[12px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                Xem chi tiết
+              </Link>
+            ) : (
+              <Link to="/booking" className="inline-flex items-center gap-1 text-[12px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                <span>Đặt lịch ngay</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            )
           }
         />
 
@@ -693,24 +733,24 @@ const PatientDashboard = () => {
           iconColor="text-indigo-600"
           value={myAppointments.length}
           unit="lượt khám"
-          statusText="Tổng số lượt khám đã ghi nhận"
-          statusColor="text-slate-600"
+          statusText={`${myAppointments.filter(a => a.status === 'COMPLETED').length} hoàn thành · ${myAppointments.filter(a => a.status === 'CANCELLED').length} đã hủy`}
+          statusColor="text-slate-600 font-medium"
           statusBadge={
             <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
           }
         />
 
-        {/* Thẻ 3: Đơn thuốc đang dùng */}
+        {/* Thẻ 3: Đơn thuốc lưu */}
         <StatCard
           loading={loading}
           title="Đơn thuốc lưu"
           icon={Pill}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
-          value={myAppointments.length > 0 ? 1 : 0}
-          unit="đơn đang dùng"
+          value={myAppointments.filter(a => a.status === 'COMPLETED').length > 0 ? 1 : 0}
+          unit="đơn thuốc"
           statusText="Theo dõi liều lượng chuẩn y khoa"
-          statusColor="text-slate-600"
+          statusColor="text-slate-600 font-medium"
           statusBadge={
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
           }
@@ -724,7 +764,7 @@ const PatientDashboard = () => {
           iconBg="bg-amber-50"
           iconColor="text-amber-600"
           value={100}
-          unit="Điểm tích lũy"
+          unit="điểm tích lũy"
           statusText="Hạng: Bệnh nhân Thân Thiết"
           statusColor="text-amber-700 font-semibold"
           statusBadge={

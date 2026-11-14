@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { appointmentApi } from '../../services/appointmentApi';
 import { CompleteAppointmentModal } from '../../components/admin/CompleteAppointmentModal';
+import { parseClinicalRecord } from '../../utils/clinicalHelpers';
 
 const AppointmentsManagementPage = () => {
   const [appointments, setAppointments] = useState([]);
@@ -582,10 +583,65 @@ const AppointmentsManagementPage = () => {
                 <div>{renderStatusBadge(selectedAppointment.status)}</div>
               </div>
               {selectedAppointment.notes && (
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-slate-600">
-                  <div className="font-semibold text-slate-700 text-xs mb-1">Ghi chú triệu chứng:</div>
-                  <p className="text-xs">{selectedAppointment.notes}</p>
-                </div>
+                (() => {
+                  const clinical = parseClinicalRecord(selectedAppointment.notes, selectedAppointment.serviceName);
+                  if (clinical.isCustom) {
+                    return (
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
+                        <div className="font-bold text-slate-800 text-xs flex items-center gap-1.5 uppercase tracking-wide">
+                          <FileText className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Hồ sơ điều trị & Đơn thuốc:</span>
+                        </div>
+                        <div>
+                          <strong className="text-slate-700 block text-[11px]">Chẩn đoán & Thủ thuật:</strong>
+                          <p className="text-slate-900 font-medium">{clinical.diagnosis}</p>
+                        </div>
+                        {clinical.prescription?.length > 0 && (
+                          <div>
+                            <strong className="text-slate-700 block text-[11px] mb-1">Toa thuốc ({clinical.prescription.length} loại):</strong>
+                            <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                              <table className="w-full text-left text-[11px]">
+                                <thead className="bg-slate-50 text-[10px] text-slate-500 uppercase">
+                                  <tr>
+                                    <th className="py-1 px-2">Tên thuốc</th>
+                                    <th className="py-1 px-2">SL</th>
+                                    <th className="py-1 px-2">Liều dùng</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {clinical.prescription.map((m, idx) => (
+                                    <tr key={idx}>
+                                      <td className="py-1 px-2 font-medium text-slate-800">{m.name}</td>
+                                      <td className="py-1 px-2 font-mono">{m.qty}</td>
+                                      <td className="py-1 px-2 text-blue-700">{m.dose}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                        {clinical.advice && (
+                          <div>
+                            <strong className="text-slate-700 block text-[11px]">Lời dặn dò:</strong>
+                            <p className="text-slate-600">{clinical.advice}</p>
+                          </div>
+                        )}
+                        {clinical.reExam && (
+                          <div className="text-emerald-700 font-medium">
+                            <strong>Hẹn tái khám:</strong> {clinical.reExam}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-slate-600">
+                      <div className="font-semibold text-slate-700 text-xs mb-1">Ghi chú triệu chứng:</div>
+                      <p className="text-xs">{selectedAppointment.notes}</p>
+                    </div>
+                  );
+                })()
               )}
               {selectedAppointment.cancellationReason && (
                 <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-rose-700">

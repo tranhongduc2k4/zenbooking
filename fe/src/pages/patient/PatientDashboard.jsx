@@ -24,6 +24,17 @@ import {
 } from 'lucide-react';
 import { appointmentApi } from '../../services/appointmentApi';
 
+// Chuyển YYYY-MM-DD sang DD/MM/YYYY chuẩn tiếng Việt đồng bộ hệ thống
+const formatDateVN = (dateStr) => {
+  if (!dateStr) return '';
+  const parts = String(dateStr).split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  }
+  return dateStr;
+};
+
 // ==========================================
 // 1. COMPONENT: HERO BANNER (Gọn gàng ~80px)
 // ==========================================
@@ -145,7 +156,7 @@ const AppointmentsPanel = ({
     { key: 'ALL', label: 'Tất cả', count: appointments.length },
     { key: 'PENDING', label: 'Chờ duyệt', count: appointments.filter(a => a.status === 'PENDING').length },
     { key: 'CONFIRMED', label: 'Đã duyệt', count: appointments.filter(a => a.status === 'CONFIRMED').length },
-    { key: 'COMPLETED', label: 'Hoàn thành', count: appointments.filter(a => a.status === 'COMPLETED').length },
+    { key: 'COMPLETED', label: 'Đã hoàn thành', count: appointments.filter(a => a.status === 'COMPLETED').length },
     { key: 'CANCELLED', label: 'Đã hủy', count: appointments.filter(a => a.status === 'CANCELLED').length },
   ];
 
@@ -172,39 +183,40 @@ const AppointmentsPanel = ({
   const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
   const currentItems = filtered.slice(startIndex, endIndex);
 
+  // Render badge trạng thái đồng bộ 100% với giao diện Admin
   const renderStatusBadge = (status) => {
     switch (status) {
       case 'PENDING':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-[#FFF1DB] text-[#9A5B00] border border-[#FFE1B3]">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-[#FFF1DB] text-[#9A5B00] border border-[#FFE1B3]">
             <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] animate-pulse shrink-0" />
-            Chờ duyệt
+            Chờ xác nhận
           </span>
         );
       case 'CONFIRMED':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-[#DCE7FF] text-[#1747AE] border border-[#BED2FE]">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-[#DCE7FF] text-[#1747AE] border border-[#BED2FE]">
             <span className="w-1.5 h-1.5 rounded-full bg-[#1D5FE0] shrink-0" />
-            Đã duyệt
+            Đã xác nhận
           </span>
         );
       case 'COMPLETED':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-[#E2F4E8] text-[#0B6B3A] border border-[#BCE8CB]">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-[#E2F4E8] text-[#0B6B3A] border border-[#BCE8CB]">
             <CheckCircle2 className="w-3.5 h-3.5 text-[#0B6B3A] shrink-0" />
-            Hoàn thành
+            Đã hoàn thành
           </span>
         );
       case 'CANCELLED':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-[#FCE9E9] text-[#A12626] border border-[#F7C6C6]">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-[#FCE9E9] text-[#A12626] border border-[#F7C6C6]">
             <XCircle className="w-3.5 h-3.5 text-[#A12626] shrink-0" />
-            Đã hủy
+            Đã hủy hẹn
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-slate-100 text-slate-800 border border-slate-200">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-100 text-slate-800 border border-slate-200">
             {status}
           </span>
         );
@@ -309,13 +321,13 @@ const AppointmentsPanel = ({
             <div className="hidden md:block overflow-x-auto flex-1">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-600">
                     <th className="py-3.5 px-5">Dịch vụ & Mã hẹn</th>
                     <th className="py-3.5 px-4 min-w-[160px]">Bác sĩ phụ trách</th>
                     <th className="py-3.5 px-4 min-w-[140px] whitespace-nowrap">Thời gian khám</th>
-                    <th className="py-3.5 px-4 min-w-[140px]">Trạng thái</th>
-                    <th className="py-3.5 px-4 min-w-[120px] text-right">Chi phí</th>
-                    <th className="py-3.5 px-5 min-w-[120px] text-right">Thao tác</th>
+                    <th className="py-3.5 px-4 min-w-[140px] whitespace-nowrap">Trạng thái</th>
+                    <th className="py-3.5 px-4 min-w-[120px] text-right whitespace-nowrap">Chi phí</th>
+                    <th className="py-3.5 px-5 min-w-[120px] text-right whitespace-nowrap">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-[13px]">
@@ -343,11 +355,11 @@ const AppointmentsPanel = ({
                           <span>{apt.appointmentTime}</span>
                         </div>
                         <div className="text-[12px] text-slate-600 font-medium mt-0.5">
-                          {apt.appointmentDate}
+                          {formatDateVN(apt.appointmentDate)}
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         {renderStatusBadge(apt.status)}
                       </td>
 
@@ -409,7 +421,7 @@ const AppointmentsPanel = ({
                   <div className="grid grid-cols-2 gap-2 text-[13px] text-slate-600 pt-1">
                     <div className="flex items-center gap-1.5 font-bold text-slate-900">
                       <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                      <span>{apt.appointmentTime} · {apt.appointmentDate}</span>
+                      <span>{apt.appointmentTime} · {formatDateVN(apt.appointmentDate)}</span>
                     </div>
                     <div className="text-right font-semibold text-slate-900 tabular-nums">
                       {apt.servicePrice && Number(apt.servicePrice) > 0
@@ -702,7 +714,7 @@ const PatientDashboard = () => {
           iconBg="bg-blue-50"
           iconColor="text-blue-600"
           value={nextAppointment ? nextAppointment.appointmentTime : 'Chưa có hẹn'}
-          unit={nextAppointment ? `· ${nextAppointment.appointmentDate}` : ''}
+          unit={nextAppointment ? `· ${formatDateVN(nextAppointment.appointmentDate)}` : ''}
           statusText={nextAppointment ? 'Hệ thống đã tiếp nhận' : ''}
           statusColor={nextAppointment ? 'text-emerald-700' : 'text-slate-600'}
           statusBadge={

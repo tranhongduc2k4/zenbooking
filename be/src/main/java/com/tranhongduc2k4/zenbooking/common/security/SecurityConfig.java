@@ -81,6 +81,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/doctors/**").permitAll()
                         .requestMatchers("/api/v1/services/admin/**").authenticated()
                         .requestMatchers("/api/v1/appointments/admin/**").authenticated()
+                        .requestMatchers("/api/v1/patients/**").authenticated()
                         .requestMatchers("/api/v1/appointments/my-appointments").authenticated()
                         .requestMatchers("/api/v1/appointments/*/cancel").authenticated()
                         .anyRequest().authenticated()

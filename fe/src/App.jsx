@@ -10,6 +10,7 @@ import MedicalHistoryPage from './pages/patient/MedicalHistoryPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import ServicesManagementPage from './pages/admin/ServicesManagementPage';
 import AppointmentsManagementPage from './pages/admin/AppointmentsManagementPage';
+import PatientsManagementPage from './pages/admin/PatientsManagementPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import UnauthorizedPage from './pages/error/UnauthorizedPage';
@@ -43,6 +44,7 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="appointments" element={<AppointmentsManagementPage />} />
+            <Route path="patients" element={<PatientsManagementPage />} />
             <Route path="services" element={<ServicesManagementPage />} />
           </Route>
         </Route>

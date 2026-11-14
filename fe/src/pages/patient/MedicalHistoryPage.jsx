@@ -684,3 +684,4 @@ const MedicalHistoryPage = () => {
 };
 
 export default MedicalHistoryPage;
+

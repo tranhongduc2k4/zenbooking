@@ -24,6 +24,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +75,34 @@ public class AppointmentServiceImpl implements AppointmentService {
         User doctor = null;
         if (request.getDoctorId() != null) {
             doctor = userRepository.findById(request.getDoctorId()).orElse(null);
+        }
+
+        // Kiểm tra xung đột lịch khám: Bác sĩ không thể nhận 2 ca cùng 1 thời điểm
+        if (doctor != null) {
+            boolean isDoctorBusy = appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTimeAndStatusIn(
+                    doctor.getId(),
+                    request.getAppointmentDate(),
+                    request.getAppointmentTime().trim(),
+                    List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
+            );
+            if (isDoctorBusy) {
+                throw new CustomException(HttpStatus.BAD_REQUEST,
+                        "Bác sĩ " + doctor.getFullName() + " đã có ca khám vào lúc " + 
+                        request.getAppointmentTime().trim() + " ngày " + request.getAppointmentDate() + 
+                        ". Quý khách vui lòng chọn khung giờ khác hoặc đổi bác sĩ điều trị!");
+            }
+        } else {
+            long totalDoctors = userRepository.countByRole(Role.DOCTOR);
+            long bookedDoctorsCount = appointmentRepository.countByAppointmentDateAndAppointmentTimeAndStatusIn(
+                    request.getAppointmentDate(),
+                    request.getAppointmentTime().trim(),
+                    List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
+            );
+            if (totalDoctors > 0 && bookedDoctorsCount >= totalDoctors) {
+                throw new CustomException(HttpStatus.BAD_REQUEST,
+                        "Tất cả các bác sĩ đều đã kín lịch vào lúc " + request.getAppointmentTime().trim() + 
+                        " ngày " + request.getAppointmentDate() + ". Quý khách vui lòng chọn khung giờ khác!");
+            }
         }
 
         // 5. Sinh mã lịch hẹn duy nhất (ZB-AP-XXXX)
@@ -140,7 +170,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         List<Appointment> list;
-        if (currentUser.getRole() == Role.ROLE_DOCTOR) {
+        if (currentUser.getRole() == Role.DOCTOR) {
             list = appointmentRepository.findByDoctorIdOrderByAppointmentDateDescAppointmentTimeDesc(currentUser.getId());
         } else {
             list = appointmentRepository.findByPatientIdOrderByAppointmentDateDescAppointmentTimeDesc(currentUser.getId());
@@ -155,8 +185,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> getAllAppointmentsForAdmin(AppointmentStatus status, LocalDate date, String search) {
-        List<Appointment> list = appointmentRepository.searchAppointments(status, date, search);
+    public List<AppointmentResponse> getAllAppointments(AppointmentStatus status, LocalDate date, Long doctorId, String search) {
+        List<Appointment> list = appointmentRepository.searchAppointments(status, date, doctorId, search);
         return list.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
@@ -170,13 +200,16 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional
-    public AppointmentResponse updateStatus(Long id, AppointmentStatusUpdateRequest request, User updatedBy) {
+    public AppointmentResponse updateStatus(Long id, AppointmentStatusUpdateRequest request) {
         Appointment apt = appointmentRepository.findById(id)
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch hẹn để cập nhật!"));
 
         apt.setStatus(request.getStatus());
         if (request.getCancellationReason() != null) {
             apt.setCancellationReason(request.getCancellationReason());
+        }
+        if (request.getNotes() != null) {
+            apt.setNotes(request.getNotes());
         }
 
         // Nếu admin/bác sĩ gán bác sĩ phụ trách ca
@@ -203,7 +236,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         boolean isOwner = (apt.getPatient() != null && apt.getPatient().getId().equals(currentUser.getId()))
                 || (currentUser.getPhone() != null && currentUser.getPhone().equals(apt.getPatientPhone()));
 
-        if (!isOwner && currentUser.getRole() != Role.ROLE_ADMIN) {
+        if (!isOwner && currentUser.getRole() != Role.ADMIN) {
             throw new CustomException(HttpStatus.FORBIDDEN, "Bạn không có quyền hủy lịch hẹn này!");
         }
 
@@ -232,29 +265,27 @@ public class AppointmentServiceImpl implements AppointmentService {
         return stats;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> getBookedSlots(Long doctorId, LocalDate date) {
+        if (date == null) return Collections.emptyList();
 
-    private void validateAppointmentTime(LocalDate appointmentDate, String appointmentTimeStr) {
-        if (appointmentDate == null || appointmentTimeStr == null || appointmentTimeStr.trim().isEmpty()) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Ngày và giờ khám không được để trống!");
-        }
+        if (doctorId != null) {
+            return appointmentRepository.findBookedTimesByDoctor(doctorId, date);
+        } else {
+            long totalDoctors = userRepository.countByRole(Role.DOCTOR);
+            if (totalDoctors == 0) return Collections.emptyList();
 
-        LocalTime time;
-        try {
-            time = LocalTime.parse(appointmentTimeStr.trim(), DateTimeFormatter.ofPattern("HH:mm"));
-        } catch (Exception e) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Định dạng giờ hẹn không hợp lệ (yêu cầu HH:mm)!");
-        }
-
-        LocalDateTime requestedDateTime = LocalDateTime.of(appointmentDate, time);
-        LocalDateTime now = LocalDateTime.now();
-
-        if (!requestedDateTime.isAfter(now)) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Thời gian khám phải lớn hơn thời gian hiện tại!");
-        }
-
-        LocalDateTime minimumAllowedTime = now.plusHours(2);
-        if (requestedDateTime.isBefore(minimumAllowedTime)) {
-            throw new CustomException(HttpStatus.BAD_REQUEST, "Bạn vui lòng đặt lịch khám trước giờ hẹn tối thiểu 2 tiếng để phòng khám kịp chuẩn bị chu đáo!");
+            List<Object[]> timeCounts = appointmentRepository.countBookedAppointmentsByTimeOnDate(date);
+            List<String> fullyBookedTimes = new ArrayList<>();
+            for (Object[] row : timeCounts) {
+                String time = (String) row[0];
+                long count = ((Number) row[1]).longValue();
+                if (count >= totalDoctors) {
+                    fullyBookedTimes.add(time);
+                }
+            }
+            return fullyBookedTimes;
         }
     }
 

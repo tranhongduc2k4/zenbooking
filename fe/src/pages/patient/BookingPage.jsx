@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { dentalServiceApi } from '../../services/dentalServiceApi';
+import { doctorApi } from '../../services/doctorApi';
 import { appointmentApi } from '../../services/appointmentApi';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -34,8 +35,8 @@ const BookingPage = () => {
     { id: '6', name: 'Cấy ghép Implant thẩm mỹ', price: 'Từ 12.000.000đ', time: '60 phút', icon: '🔩', category: 'Implant' },
   ];
 
-  // Danh sách bác sĩ
-  const doctors = [
+  // Danh sách bác sĩ mặc định dự phòng
+  const DEFAULT_DOCTORS = [
     { id: 'any', name: 'Bác sĩ bất kỳ (hệ thống tự sắp xếp)', specialty: 'Đội ngũ chuyên khoa', available: true },
     { id: 'dr_tuan', name: 'BS. CKI Trần Minh Tuấn', specialty: 'Chỉnh nha & Răng khôn · 12 năm KN', available: true },
     { id: 'dr_yen', name: 'ThS. BS Lê Hoàng Yến', specialty: 'Nha khoa Thẩm mỹ · 10 năm KN', available: true },
@@ -60,9 +61,12 @@ const BookingPage = () => {
   const [serviceSearchTerm, setServiceSearchTerm] = useState('');
   const [selectedService, setSelectedService] = useState('1');
   const [loadingServices, setLoadingServices] = useState(true);
+  const [doctors, setDoctors] = useState(DEFAULT_DOCTORS);
   const [selectedDoctor, setSelectedDoctor] = useState('any');
   const [bookingDate, setBookingDate] = useState(getTodayDateString());
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
+  const [bookedSlots, setBookedSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [patientName, setPatientName] = useState('');
   const [patientPhone, setPatientPhone] = useState('');
   const [note, setNote] = useState('');
@@ -101,10 +105,12 @@ const BookingPage = () => {
     return slotDate > minimumAllowedDate;
   };
 
-  // Tự động chọn khung giờ hợp lệ đầu tiên khi ngày thay đổi
+  // Tự động chọn khung giờ hợp lệ đầu tiên khi ngày hoặc danh sách giờ kín thay đổi
   useEffect(() => {
     const allSlots = [...allMorningSlots, ...allAfternoonSlots];
-    const availableSlots = allSlots.filter((slot) => isSlotValid(slot, bookingDate));
+    const availableSlots = allSlots.filter(
+      (slot) => isSlotValid(slot, bookingDate) && !bookedSlots.includes(slot)
+    );
 
     if (availableSlots.length > 0) {
       if (!availableSlots.includes(selectedTimeSlot)) {
@@ -113,7 +119,34 @@ const BookingPage = () => {
     } else {
       setSelectedTimeSlot('');
     }
-  }, [bookingDate]);
+  }, [bookingDate, bookedSlots]);
+
+  // Tải danh sách các khung giờ đã kín lịch của bác sĩ vào ngày được chọn
+  useEffect(() => {
+    let isMounted = true;
+    const fetchBookedSlots = async () => {
+      if (!bookingDate) return;
+      try {
+        setLoadingSlots(true);
+        const docId = selectedDoctor !== 'any' && !isNaN(Number(selectedDoctor)) ? Number(selectedDoctor) : null;
+        const res = await appointmentApi.getBookedSlots(docId, bookingDate);
+        const slots = Array.isArray(res) ? res : (res?.data || []);
+        if (isMounted) {
+          setBookedSlots(Array.isArray(slots) ? slots : []);
+        }
+      } catch (err) {
+        console.warn('Không thể tải danh sách khung giờ đã kín lịch:', err);
+        if (isMounted) setBookedSlots([]);
+      } finally {
+        if (isMounted) setLoadingSlots(false);
+      }
+    };
+
+    fetchBookedSlots();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedDoctor, bookingDate]);
 
   // Tải danh mục dịch vụ từ Backend API
   useEffect(() => {
@@ -142,6 +175,31 @@ const BookingPage = () => {
       }
     };
     fetchServices();
+  }, []);
+
+  // Tải danh sách bác sĩ chuyên khoa từ Backend MySQL
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const res = await doctorApi.getDoctors();
+        const dataList = Array.isArray(res) ? res : (res?.data || []);
+        if (dataList && dataList.length > 0) {
+          const mapped = [
+            { id: 'any', name: 'Bác sĩ bất kỳ (hệ thống tự sắp xếp)', specialty: 'Đội ngũ chuyên khoa', available: true },
+            ...dataList.map((d) => ({
+              id: String(d.id),
+              name: d.fullName,
+              specialty: d.specialty || 'Bác sĩ chuyên khoa',
+              available: true,
+            }))
+          ];
+          setDoctors(mapped);
+        }
+      } catch (err) {
+        console.warn('Không thể tải bác sĩ từ server, dùng danh sách dự phòng:', err);
+      }
+    };
+    fetchDoctors();
   }, []);
 
   // Tự động điền thông tin người dùng đã đăng nhập
@@ -178,14 +236,20 @@ const BookingPage = () => {
       return;
     }
 
+    if (bookedSlots.includes(selectedTimeSlot)) {
+      setFormError('Khung giờ bạn chọn đã kín lịch. Vui lòng chọn khung giờ khác hoặc đổi bác sĩ!');
+      return;
+    }
+
     setFormError('');
     try {
       setIsSubmitting(true);
       const parsedServiceId = Number(selectedService);
+      const isSpecificDoctor = selectedDoctor !== 'any' && !isNaN(Number(selectedDoctor));
       const bookingPayload = {
         serviceId: !isNaN(parsedServiceId) ? parsedServiceId : null,
         serviceName: currentService?.name,
-        doctorId: null,
+        doctorId: isSpecificDoctor ? Number(selectedDoctor) : null,
         doctorName: currentDoctor?.name,
         appointmentDate: bookingDate,
         appointmentTime: selectedTimeSlot,
@@ -479,27 +543,45 @@ const BookingPage = () => {
 
                 {/* Khung giờ buổi sáng */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-2">🌅 Buổi sáng (08:00 - 11:30):</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-semibold text-slate-600">🌅 Buổi sáng (08:00 - 11:30):</label>
+                    {loadingSlots && <span className="text-[11px] text-slate-400">Đang kiểm tra lịch trống...</span>}
+                  </div>
                   <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                     {allMorningSlots.map((slot) => {
                       const valid = isSlotValid(slot, bookingDate);
+                      const isBooked = bookedSlots.includes(slot);
+                      const canSelect = valid && !isBooked;
                       const isSelected = selectedTimeSlot === slot;
                       return (
                         <button
                           type="button"
                           key={slot}
-                          disabled={!valid}
+                          disabled={!canSelect}
                           onClick={() => setSelectedTimeSlot(slot)}
-                          title={!valid ? 'Khung giờ này đã qua hoặc không đủ trước 2 tiếng' : `Chọn giờ ${slot}`}
-                          className={`py-2 text-center font-mono text-xs font-semibold rounded-xl border transition-all ${
-                            !valid
+                          title={
+                            isBooked
+                              ? 'Khung giờ này đã kín lịch, vui lòng chọn giờ khác hoặc đổi bác sĩ'
+                              : !valid
+                              ? 'Khung giờ này đã qua hoặc không đủ trước 2 tiếng'
+                              : `Chọn giờ ${slot}`
+                          }
+                          className={`py-2 px-1 text-center font-mono text-xs font-semibold rounded-xl border transition-all ${
+                            isBooked
+                              ? 'bg-rose-50 text-rose-400 border-rose-200 cursor-not-allowed opacity-90'
+                              : !valid
                               ? 'bg-slate-100 text-slate-300 border-slate-100 cursor-not-allowed line-through'
                               : isSelected
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs ring-2 ring-blue-300'
                               : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer'
                           }`}
                         >
-                          {slot}
+                          <div>{slot}</div>
+                          {isBooked && (
+                            <div className="text-[9px] font-sans font-medium text-rose-500 leading-none mt-0.5">
+                              Kín lịch
+                            </div>
+                          )}
                         </button>
                       );
                     })}
@@ -512,33 +594,62 @@ const BookingPage = () => {
                   <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2">
                     {allAfternoonSlots.map((slot) => {
                       const valid = isSlotValid(slot, bookingDate);
+                      const isBooked = bookedSlots.includes(slot);
+                      const canSelect = valid && !isBooked;
                       const isSelected = selectedTimeSlot === slot;
                       return (
                         <button
                           type="button"
                           key={slot}
-                          disabled={!valid}
+                          disabled={!canSelect}
                           onClick={() => setSelectedTimeSlot(slot)}
-                          title={!valid ? 'Khung giờ này đã qua hoặc không đủ trước 2 tiếng' : `Chọn giờ ${slot}`}
-                          className={`py-2 text-center font-mono text-xs font-semibold rounded-xl border transition-all ${
-                            !valid
+                          title={
+                            isBooked
+                              ? 'Khung giờ này đã kín lịch, vui lòng chọn giờ khác hoặc đổi bác sĩ'
+                              : !valid
+                              ? 'Khung giờ này đã qua hoặc không đủ trước 2 tiếng'
+                              : `Chọn giờ ${slot}`
+                          }
+                          className={`py-2 px-1 text-center font-mono text-xs font-semibold rounded-xl border transition-all ${
+                            isBooked
+                              ? 'bg-rose-50 text-rose-400 border-rose-200 cursor-not-allowed opacity-90'
+                              : !valid
                               ? 'bg-slate-100 text-slate-300 border-slate-100 cursor-not-allowed line-through'
                               : isSelected
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs ring-2 ring-blue-300'
                               : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer'
                           }`}
                         >
-                          {slot}
+                          <div>{slot}</div>
+                          {isBooked && (
+                            <div className="text-[9px] font-sans font-medium text-rose-500 leading-none mt-0.5">
+                              Kín lịch
+                            </div>
+                          )}
                         </button>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Ghi chú giải thích */}
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-500 flex items-center gap-2">
-                  <Info className="w-4 h-4 text-blue-500 shrink-0" />
-                  <span>Các khung giờ bị gạch ngang là khung giờ đã qua trong ngày hoặc không đủ điều kiện đặt trước 2 tiếng.</span>
+                {/* Chú thích màu sắc */}
+                <div className="flex flex-wrap items-center gap-4 p-3 bg-slate-50/70 rounded-xl border border-slate-200/60 text-xs text-slate-600">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3.5 h-3.5 rounded-md bg-blue-600 inline-block shadow-xs"></span>
+                    <span className="font-medium text-slate-700">Đang chọn</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3.5 h-3.5 rounded-md bg-white border border-slate-300 inline-block"></span>
+                    <span>Còn trống</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3.5 h-3.5 rounded-md bg-rose-50 border border-rose-200 inline-block"></span>
+                    <span className="text-rose-600 font-medium">Đã kín lịch (bác sĩ bận)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3.5 h-3.5 rounded-md bg-slate-100 border border-slate-200 inline-block line-through text-[10px] flex items-center justify-center text-slate-400">✕</span>
+                    <span>Không khả dụng (&lt; 2h)</span>
+                  </div>
                 </div>
               </div>
             </div>

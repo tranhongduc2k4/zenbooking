@@ -25,5 +25,7 @@ public interface AppointmentService {
     AppointmentResponse cancelMyAppointment(Long id, String reason, User currentUser);
 
     Map<String, Object> getAppointmentStats();
+
+    List<String> getBookedSlots(Long doctorId, LocalDate date);
 }
 

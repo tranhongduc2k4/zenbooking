@@ -6,9 +6,11 @@ import AdminLayout from './layouts/AdminLayout';
 import LandingPage from './pages/patient/LandingPage';
 import PatientDashboard from './pages/patient/PatientDashboard';
 import BookingPage from './pages/patient/BookingPage';
+import MedicalHistoryPage from './pages/patient/MedicalHistoryPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import ServicesManagementPage from './pages/admin/ServicesManagementPage';
 import AppointmentsManagementPage from './pages/admin/AppointmentsManagementPage';
+import PatientsManagementPage from './pages/admin/PatientsManagementPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import UnauthorizedPage from './pages/error/UnauthorizedPage';
@@ -33,6 +35,7 @@ function App() {
           <Route element={<PatientPortalLayout />}>
             <Route path="/patient-home" element={<PatientDashboard />} />
             <Route path="/booking" element={<BookingPage />} />
+            <Route path="/patient/history" element={<MedicalHistoryPage />} />
           </Route>
         </Route>
 
@@ -41,6 +44,7 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="appointments" element={<AppointmentsManagementPage />} />
+            <Route path="patients" element={<PatientsManagementPage />} />
             <Route path="services" element={<ServicesManagementPage />} />
           </Route>
         </Route>

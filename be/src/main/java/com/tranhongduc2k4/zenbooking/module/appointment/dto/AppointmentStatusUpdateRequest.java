@@ -17,5 +17,9 @@ public class AppointmentStatusUpdateRequest {
     private AppointmentStatus status;
 
     private String cancellationReason;
+
+    private Long doctorId;
+
+    private String notes;
 }
 

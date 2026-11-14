@@ -66,12 +66,22 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED);
+                            response.getWriter().write("{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Phiên đăng nhập đã hết hạn hoặc không hợp lệ, vui lòng đăng nhập lại!\"}");
+                        })
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/appointments").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/appointments/booked-slots").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/services/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/doctors/**").permitAll()
                         .requestMatchers("/api/v1/services/admin/**").authenticated()
                         .requestMatchers("/api/v1/appointments/admin/**").authenticated()
+                        .requestMatchers("/api/v1/patients/**").authenticated()
                         .requestMatchers("/api/v1/appointments/my-appointments").authenticated()
                         .requestMatchers("/api/v1/appointments/*/cancel").authenticated()
                         .anyRequest().authenticated()

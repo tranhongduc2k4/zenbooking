@@ -90,5 +90,14 @@ public class AppointmentController {
         User currentUser = userDetails != null ? userDetails.getUser() : null;
         return ResponseEntity.ok(appointmentService.cancelMyAppointment(id, reason, currentUser));
     }
+
+    // 8. Lấy danh sách khung giờ đã kín lịch (theo bác sĩ và ngày)
+    @GetMapping("/booked-slots")
+    public ResponseEntity<List<String>> getBookedSlots(
+            @RequestParam(required = false) Long doctorId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        return ResponseEntity.ok(appointmentService.getBookedSlots(doctorId, date));
+    }
 }
 

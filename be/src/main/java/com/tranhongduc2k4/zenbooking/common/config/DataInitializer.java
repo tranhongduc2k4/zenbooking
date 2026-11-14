@@ -5,12 +5,14 @@ import com.tranhongduc2k4.zenbooking.module.appointment.entity.AppointmentStatus
 import com.tranhongduc2k4.zenbooking.module.appointment.repository.AppointmentRepository;
 import com.tranhongduc2k4.zenbooking.module.catalog.entity.DentalService;
 import com.tranhongduc2k4.zenbooking.module.catalog.repository.DentalServiceRepository;
+import com.tranhongduc2k4.zenbooking.module.user.entity.Role;
 import com.tranhongduc2k4.zenbooking.module.user.entity.User;
 import com.tranhongduc2k4.zenbooking.module.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,11 +26,63 @@ public class DataInitializer implements CommandLineRunner {
     private final DentalServiceRepository serviceRepository;
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
+        initUsers();
         initServices();
         initAppointments();
+    }
+
+    private void initUsers() {
+        log.info("Kiểm tra và khởi tạo danh sách Bác sĩ chuyên khoa & Tài khoản mẫu...");
+        String defaultPassword = "123456";
+
+        // 1. Tài khoản Bệnh nhân mẫu
+        upsertUser("Trần Hồng Đức", "0792275635", "duc.patient@zenbooking.com", defaultPassword, Role.PATIENT, "Bệnh nhân thân thiết");
+
+        // 2. Tài khoản Admin quản trị viên
+        upsertUser("Admin Quản Trị Viên", "0909999999", "admin@zenbooking.com", defaultPassword, Role.ADMIN, "Quản lý phòng khám");
+
+        // 3. Đội ngũ Bác sĩ chuyên khoa (chuẩn theo giao diện & bổ sung thêm)
+        upsertDoctor("BS. CKI Trần Minh Tuấn", "0988888888", "tuan.doctor@zenbooking.com", defaultPassword, "Chỉnh nha & Răng khôn · 12 năm KN");
+        upsertDoctor("ThS. BS Lê Hoàng Yến", "0988888889", "yen.doctor@zenbooking.com", defaultPassword, "Nha khoa Thẩm mỹ · 10 năm KN");
+        upsertDoctor("BS. Nguyễn Văn Hùng", "0988888890", "hung.doctor@zenbooking.com", defaultPassword, "Cấy ghép Implant · 8 năm KN");
+        upsertDoctor("BS. CKI Phạm Thanh Tùng", "0988888891", "tung.doctor@zenbooking.com", defaultPassword, "Nha khoa Tổng quát & Trám răng · 9 năm KN");
+        upsertDoctor("ThS. BS Đỗ Thu Hà", "0988888892", "ha.doctor@zenbooking.com", defaultPassword, "Nha chu & Răng trẻ em · 7 năm KN");
+        upsertDoctor("BS. CKI Vũ Đức Thắng", "0988888893", "thang.doctor@zenbooking.com", defaultPassword, "Phục hình Thẩm mỹ & Dán sứ Veneer · 11 năm KN");
+
+        log.info("Hoàn tất khởi tạo danh sách Bác sĩ chuyên khoa vào Database!");
+    }
+
+    private void upsertUser(String fullName, String phone, String email, String password, Role role, String specialty) {
+        User user = userRepository.findByPhone(phone)
+                .or(() -> userRepository.findByEmail(email))
+                .orElse(null);
+
+        if (user == null) {
+            user = User.builder()
+                    .fullName(fullName)
+                    .phone(phone)
+                    .email(email)
+                    .passwordHash(passwordEncoder.encode(password))
+                    .role(role)
+                    .specialty(specialty)
+                    .build();
+        } else {
+            user.setFullName(fullName);
+            user.setPhone(phone);
+            user.setEmail(email);
+            user.setRole(role);
+            user.setSpecialty(specialty);
+            user.setPasswordHash(passwordEncoder.encode(password));
+        }
+        userRepository.save(user);
+    }
+
+    private void upsertDoctor(String fullName, String phone, String email, String password, String specialty) {
+        upsertUser(fullName, phone, email, password, Role.DOCTOR, specialty);
     }
 
     private void initServices() {

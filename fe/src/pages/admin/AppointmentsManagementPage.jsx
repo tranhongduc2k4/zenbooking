@@ -21,6 +21,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { appointmentApi } from '../../services/appointmentApi';
+import { CompleteAppointmentModal } from '../../components/admin/CompleteAppointmentModal';
 
 const AppointmentsManagementPage = () => {
   const [appointments, setAppointments] = useState([]);
@@ -41,6 +42,8 @@ const AppointmentsManagementPage = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [appointmentToComplete, setAppointmentToComplete] = useState(null);
   const [cancellationReason, setCancellationReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState(null);
@@ -109,6 +112,32 @@ const AppointmentsManagementPage = () => {
     } catch (err) {
       console.error('Không thể cập nhật trạng thái:', err);
       showNotification('error', 'Có lỗi xảy ra khi cập nhật lịch hẹn');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Mở modal hoàn tất ca khám & kê đơn thuốc
+  const handleOpenCompleteModal = (apt) => {
+    setAppointmentToComplete(apt);
+    setShowCompleteModal(true);
+  };
+
+  // Xác nhận lưu bệnh án và chuyển trạng thái COMPLETED
+  const handleConfirmCompletion = async (aptId, clinicalNotes) => {
+    try {
+      setActionLoading(true);
+      await appointmentApi.updateAppointmentStatus(aptId, {
+        status: 'COMPLETED',
+        notes: clinicalNotes,
+      });
+      showNotification('success', 'Đã lưu đơn thuốc & hoàn tất ca khám thành công!');
+      setShowCompleteModal(false);
+      setAppointmentToComplete(null);
+      fetchData();
+    } catch (err) {
+      console.error('Không thể hoàn tất ca khám:', err);
+      showNotification('error', 'Có lỗi xảy ra khi hoàn tất ca khám');
     } finally {
       setActionLoading(false);
     }
@@ -465,15 +494,16 @@ const AppointmentsManagementPage = () => {
                           </button>
                         )}
 
-                        {/* Nếu đang CONFIRMED -> nút Đã khám xong */}
+                        {/* Nếu đang CONFIRMED -> nút Đã khám xong & Kê đơn */}
                         {apt.status === 'CONFIRMED' && (
                           <button
-                            onClick={() => handleUpdateStatus(apt.id, 'COMPLETED')}
+                            onClick={() => handleOpenCompleteModal(apt)}
                             disabled={actionLoading}
-                            className="px-2.5 py-1 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition shadow-xs"
-                            title="Đánh dấu hoàn thành"
+                            className="px-2.5 py-1 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition shadow-xs flex items-center gap-1 cursor-pointer"
+                            title="Hoàn tất ca khám & kê đơn thuốc"
                           >
-                            Hoàn thành
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Hoàn thành</span>
                           </button>
                         )}
 
@@ -653,6 +683,18 @@ const AppointmentsManagementPage = () => {
           </div>
         </div>
       )}
+
+      {/* Modal Hoàn Tất Ca Khám & Kê Đơn Thuốc */}
+      <CompleteAppointmentModal
+        isOpen={showCompleteModal}
+        onClose={() => {
+          setShowCompleteModal(false);
+          setAppointmentToComplete(null);
+        }}
+        appointment={appointmentToComplete}
+        onComplete={handleConfirmCompletion}
+        isSubmitting={actionLoading}
+      />
     </div>
   );
 };

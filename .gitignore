@@ -1,8 +1,5 @@
 # Backend
 **/target/
-**/.mvn/
-**/mvnw
-**/mvnw.cmd
 
 # Frontend
 **/node_modules/

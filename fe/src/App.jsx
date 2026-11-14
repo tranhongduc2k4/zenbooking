@@ -6,6 +6,7 @@ import AdminLayout from './layouts/AdminLayout';
 import LandingPage from './pages/patient/LandingPage';
 import PatientDashboard from './pages/patient/PatientDashboard';
 import BookingPage from './pages/patient/BookingPage';
+import MedicalHistoryPage from './pages/patient/MedicalHistoryPage';
 import DashboardPage from './pages/admin/DashboardPage';
 import ServicesManagementPage from './pages/admin/ServicesManagementPage';
 import AppointmentsManagementPage from './pages/admin/AppointmentsManagementPage';
@@ -33,6 +34,7 @@ function App() {
           <Route element={<PatientPortalLayout />}>
             <Route path="/patient-home" element={<PatientDashboard />} />
             <Route path="/booking" element={<BookingPage />} />
+            <Route path="/patient/history" element={<MedicalHistoryPage />} />
           </Route>
         </Route>
 

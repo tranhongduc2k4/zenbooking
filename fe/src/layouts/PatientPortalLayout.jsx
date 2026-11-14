@@ -40,7 +40,7 @@ const PatientPortalLayout = () => {
   const navigation = [
     { name: 'Tổng quan', href: '/patient-home', icon: LayoutDashboard, description: 'Bảng điều khiển cá nhân' },
     { name: 'Đặt lịch khám', href: '/booking', icon: CalendarPlus, badge: 'Mới', description: 'Đặt lịch nhanh trực tuyến' },
-    { name: 'Lịch sử & Hồ sơ', href: '/patient-home#history', icon: FileText, description: 'Lịch sử khám & y bạ' },
+    { name: 'Lịch sử & Hồ sơ', href: '/patient/history', icon: FileText, description: 'Lịch sử khám & y bạ' },
     { name: 'Điểm thưởng', href: '/patient-home#rewards', icon: Sparkles, badge: '100đ', description: 'ZenZen Rewards' },
   ];
 

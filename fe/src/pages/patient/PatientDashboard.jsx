@@ -589,6 +589,11 @@ const PatientDashboard = () => {
     }
   }, []);
 
+  const showNotification = (type, text) => {
+    setFeedbackMessage({ type, text });
+    setTimeout(() => setFeedbackMessage(null), 4000);
+  };
+
   const fetchMyAppointments = async () => {
     try {
       setLoading(true);
@@ -597,6 +602,11 @@ const PatientDashboard = () => {
       setMyAppointments(list);
     } catch (err) {
       console.warn('Lỗi khi tải danh sách lịch khám:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        showNotification('error', 'Phiên đăng nhập đã hết hạn. Đang chuyển hướng về trang đăng nhập...');
+      } else {
+        showNotification('error', 'Không thể kết nối đến máy chủ để tải lịch hẹn. Vui lòng bấm "Làm mới"!');
+      }
     } finally {
       setLoading(false);
     }
@@ -605,11 +615,6 @@ const PatientDashboard = () => {
   useEffect(() => {
     fetchMyAppointments();
   }, []);
-
-  const showNotification = (type, text) => {
-    setFeedbackMessage({ type, text });
-    setTimeout(() => setFeedbackMessage(null), 4000);
-  };
 
   const handleCancelAppointment = async () => {
     if (!selectedAppointment) return;

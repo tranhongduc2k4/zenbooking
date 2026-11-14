@@ -7,7 +7,10 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ identifier: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('expired') ? 'Phiên đăng nhập của bạn đã hết hạn, vui lòng đăng nhập lại để tiếp tục!' : '';
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {

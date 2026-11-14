@@ -27,8 +27,13 @@ axiosClient.interceptors.response.use(
     return response.data;
   },
   (error) => {
-    if (error.response && error.response.status === 401) {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('user_role');
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+        window.location.href = '/login?expired=true';
+      }
     }
     return Promise.reject(error);
   }

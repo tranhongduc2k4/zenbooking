@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
@@ -9,11 +9,63 @@ import {
   ChevronRight, 
   Star,
   CheckCircle,
-  PhoneCall
+  PhoneCall,
+  Stethoscope,
+  ArrowRight,
+  UserCheck
 } from 'lucide-react';
+import { doctorApi } from '../../services/doctorApi';
+
+const DEFAULT_DOCTORS_LIST = [
+  { id: 13, fullName: 'BS. CKI Trần Minh Tuấn', specialty: 'Chỉnh nha & Răng khôn · 12 năm KN', exp: '12 năm kinh nghiệm', tag: 'Chuyên gia Chỉnh nha' },
+  { id: 14, fullName: 'ThS. BS Lê Hoàng Yến', specialty: 'Nha khoa Thẩm mỹ · 10 năm KN', exp: '10 năm kinh nghiệm', tag: 'Thẩm mỹ nụ cười' },
+  { id: 15, fullName: 'BS. Nguyễn Văn Hùng', specialty: 'Cấy ghép Implant · 8 năm KN', exp: '8 năm kinh nghiệm', tag: 'Chuyên gia Implant' },
+  { id: 16, fullName: 'BS. CKI Phạm Thanh Tùng', specialty: 'Nha khoa Tổng quát & Trám răng · 9 năm KN', exp: '9 năm kinh nghiệm', tag: 'Nha khoa Tổng quát' },
+  { id: 17, fullName: 'ThS. BS Đỗ Thu Hà', specialty: 'Nha chu & Răng trẻ em · 7 năm KN', exp: '7 năm kinh nghiệm', tag: 'Nha chu & Răng trẻ em' },
+  { id: 18, fullName: 'BS. CKI Vũ Đức Thắng', specialty: 'Phục hình Thẩm mỹ & Dán sứ Veneer · 11 năm KN', exp: '11 năm kinh nghiệm', tag: 'Dán sứ Veneer' },
+];
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const [doctors, setDoctors] = useState(DEFAULT_DOCTORS_LIST);
+  const [loadingDoctors, setLoadingDoctors] = useState(true);
+
+  // Tải danh sách bác sĩ chuyên khoa thực tế từ Backend API
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        setLoadingDoctors(true);
+        const res = await doctorApi.getDoctors();
+        const dataList = Array.isArray(res) ? res : (res?.data || []);
+        if (dataList && dataList.length > 0) {
+          setDoctors(dataList);
+        }
+      } catch (err) {
+        console.warn('Không thể tải bác sĩ từ server, dùng danh sách mẫu:', err);
+      } finally {
+        setLoadingDoctors(false);
+      }
+    };
+    fetchDoctors();
+  }, []);
+
+  // Xử lý chuyển trang Đặt lịch với Bác sĩ được chỉ định
+  const handleBookWithDoctor = (doc) => {
+    const token = localStorage.getItem('access_token');
+    const targetUrl = `/booking?doctorId=${doc.id}`;
+
+    if (token) {
+      navigate(targetUrl);
+    } else {
+      // Khách vãng lai chưa login: Chuyển sang login kèm redirect param
+      navigate(`/login?redirect=${encodeURIComponent(targetUrl)}`, {
+        state: {
+          fromDoctor: doc.fullName || doc.name,
+          redirect: targetUrl,
+        },
+      });
+    }
+  };
 
   // LandingPage chỉ dành cho người CHƯA đăng nhập. Nếu đã đăng nhập, tự động chuyển về dashboard phù hợp.
   useEffect(() => {
@@ -232,7 +284,79 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* 3. TẠI SAO CHỌN ZENBOOKING */}
+      {/* 3. ĐỘI NGŨ BÁC SĨ CHUYÊN KHOA */}
+      <section id="doctors" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-3 py-1 rounded-full inline-flex items-center gap-1.5">
+            <Stethoscope size={13} className="text-blue-600" />
+            Đội ngũ chuyên gia y tế
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+            Gặp Gỡ Bác Sĩ Điều Trị Của Bạn
+          </h2>
+          <p className="text-sm sm:text-base text-slate-600">
+            100% bác sĩ có chứng chỉ hành nghề, giàu kinh nghiệm từ các bệnh viện lớn, cam kết mang đến phác đồ chuẩn y khoa và trải nghiệm điều trị êm ái nhất.
+          </p>
+        </div>
+
+        {/* Lưới Card Bác sĩ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {doctors.map((doc) => (
+            <div
+              key={doc.id}
+              className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all duration-300 flex flex-col justify-between group"
+            >
+              <div>
+                {/* Avatar & Header */}
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-md shadow-blue-500/20 shrink-0 group-hover:scale-105 transition-transform">
+                    {doc.fullName ? doc.fullName.replace(/BS\.|ThS\.|CKI/g, '').trim().charAt(0) : 'BS'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        <CheckCircle size={10} className="text-emerald-500" />
+                        Bác sĩ chính thức
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                      {doc.fullName}
+                    </h3>
+                    <p className="text-xs text-blue-600 font-medium mt-0.5 line-clamp-1">
+                      {doc.specialty}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Rating & Thông tin thêm */}
+                <div className="bg-slate-50 rounded-xl p-3 mb-5 border border-slate-100/80 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1 text-amber-500 font-semibold">
+                    <Star size={13} fill="currentColor" />
+                    <span>5.0</span>
+                    <span className="text-slate-400 font-normal">(120+ đánh giá)</span>
+                  </div>
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    100% ca khám hài lòng
+                  </span>
+                </div>
+              </div>
+
+              {/* Nút Đặt lịch với Bác sĩ này */}
+              <button
+                type="button"
+                onClick={() => handleBookWithDoctor(doc)}
+                className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 transition-all cursor-pointer group-hover:bg-blue-600"
+              >
+                <Calendar size={14} />
+                <span>Đặt lịch với Bác sĩ này</span>
+                <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 4. TẠI SAO CHỌN ZENBOOKING */}
       <section id="about" className="bg-slate-100/70 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-12 space-y-2">

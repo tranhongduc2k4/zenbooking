@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 import authApi from '../../services/authApi';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect') || location.state?.redirect;
+  const fromDoctor = location.state?.fromDoctor;
+
   const [formData, setFormData] = useState({ identifier: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('expired') ? 'Phiên đăng nhập của bạn đã hết hạn, vui lòng đăng nhập lại để tiếp tục!' : '';
+    return searchParams.get('expired') ? 'Phiên đăng nhập của bạn đã hết hạn, vui lòng đăng nhập lại để tiếp tục!' : '';
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,10 +37,12 @@ const LoginPage = () => {
       localStorage.setItem('user', JSON.stringify(res));
 
       const userRole = res.role;
-      if (userRole === 'ROLE_ADMIN' || userRole === 'ADMIN' || userRole === 'ROLE_DOCTOR' || userRole === 'DOCTOR') {
-        navigate('/admin');
+      if (redirectUrl) {
+        navigate(redirectUrl, { replace: true });
+      } else if (userRole === 'ROLE_ADMIN' || userRole === 'ADMIN' || userRole === 'ROLE_DOCTOR' || userRole === 'DOCTOR') {
+        navigate('/admin', { replace: true });
       } else {
-        navigate('/patient-home');
+        navigate('/patient-home', { replace: true });
       }
     } catch (error) {
       const msg = error.response?.data?.message || 'Số điện thoại/Email hoặc mật khẩu không chính xác!';
@@ -59,6 +65,21 @@ const LoginPage = () => {
           <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Chào mừng trở lại!</h2>
           <p className="text-sm text-slate-500 mt-1">Đăng nhập vào tài khoản ZenBooking của bạn</p>
         </div>
+
+        {/* Thông báo chuyển hướng đặt lịch bác sĩ nếu có */}
+        {redirectUrl && (
+          <div className="mb-5 p-3.5 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-2.5 text-xs text-blue-900 shadow-xs">
+            <span className="text-lg">👨‍⚕️</span>
+            <div>
+              <span className="font-bold text-blue-800">Đặt lịch khám chuyên khoa:</span>
+              <p className="mt-0.5 text-blue-700 leading-relaxed">
+                {fromDoctor
+                  ? `Vui lòng đăng nhập để hoàn tất đặt lịch khám cùng ${fromDoctor}!`
+                  : 'Vui lòng đăng nhập để tiếp tục đặt lịch hẹn với bác sĩ bạn đã chọn!'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Thông báo lỗi nếu có */}
         {errorMessage && (
@@ -146,7 +167,10 @@ const LoginPage = () => {
         {/* Chuyển hướng sang đăng ký */}
         <div className="mt-6 text-center text-sm text-slate-500">
           Chưa có tài khoản?{' '}
-          <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-500 transition-colors">
+          <Link
+            to={redirectUrl ? `/register?redirect=${encodeURIComponent(redirectUrl)}` : '/register'}
+            className="font-semibold text-blue-600 hover:text-blue-500 transition-colors"
+          >
             Đăng ký ngay
           </Link>
         </div>

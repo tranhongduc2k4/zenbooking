@@ -72,6 +72,9 @@ const PatientLayout = () => {
               <a href="#services" className="hover:text-blue-600 transition-colors">
                 Dịch vụ nha khoa
               </a>
+              <a href="#doctors" className="hover:text-blue-600 transition-colors">
+                Đội ngũ bác sĩ
+              </a>
               <Link to="/booking" className="hover:text-blue-600 transition-colors">
                 Lịch khám
               </Link>
@@ -148,6 +151,13 @@ const PatientLayout = () => {
               className="block py-2 text-base font-medium text-slate-700 hover:text-blue-600"
             >
               Dịch vụ nha khoa
+            </a>
+            <a
+              href="#doctors"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-base font-medium text-slate-700 hover:text-blue-600"
+            >
+              Đội ngũ bác sĩ
             </a>
             <Link
               to="/booking"

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { dentalServiceApi } from '../../services/dentalServiceApi';
 import { doctorApi } from '../../services/doctorApi';
 import { appointmentApi } from '../../services/appointmentApi';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Calendar, 
   Clock, 
@@ -24,6 +24,8 @@ import {
 
 const BookingPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const doctorIdFromUrl = searchParams.get('doctorId');
 
   // Danh mục dịch vụ mặc định (fallback)
   const DEFAULT_SERVICES = [
@@ -194,13 +196,31 @@ const BookingPage = () => {
             }))
           ];
           setDoctors(mapped);
+
+          // Nếu có doctorId từ URL (chuyển từ Landing Page sang)
+          if (doctorIdFromUrl) {
+            const found = mapped.find((d) => String(d.id) === String(doctorIdFromUrl));
+            if (found) {
+              setSelectedDoctor(String(found.id));
+            }
+          }
         }
       } catch (err) {
         console.warn('Không thể tải bác sĩ từ server, dùng danh sách dự phòng:', err);
       }
     };
     fetchDoctors();
-  }, []);
+  }, [doctorIdFromUrl]);
+
+  // Đồng bộ lại selectedDoctor khi doctors hoặc URL query param thay đổi
+  useEffect(() => {
+    if (doctorIdFromUrl && doctors.length > 0) {
+      const found = doctors.find((d) => String(d.id) === String(doctorIdFromUrl));
+      if (found) {
+        setSelectedDoctor(String(found.id));
+      }
+    }
+  }, [doctorIdFromUrl, doctors]);
 
   // Tự động điền thông tin người dùng đã đăng nhập
   useEffect(() => {
@@ -216,8 +236,8 @@ const BookingPage = () => {
     }
   }, []);
 
-  const currentService = services.find((s) => s.id === selectedService) || services[0];
-  const currentDoctor = doctors.find((d) => d.id === selectedDoctor) || doctors[0];
+  const currentService = services.find((s) => String(s.id) === String(selectedService)) || services[0];
+  const currentDoctor = doctors.find((d) => String(d.id) === String(selectedDoctor)) || doctors[0];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -373,6 +393,34 @@ const BookingPage = () => {
         </div>
       </div>
 
+      {/* Banner Bác sĩ chuyên khoa được chọn sẵn từ Landing Page */}
+      {selectedDoctor !== 'any' && currentDoctor && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-blue-500/10 border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in duration-300 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-md shadow-blue-500/20 shrink-0">
+              👨‍⚕️
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md">
+                  Bác sĩ khám được chỉ định
+                </span>
+                <span className="text-xs text-slate-500 font-medium">Theo lựa chọn của bạn</span>
+              </div>
+              <h3 className="text-sm font-bold text-slate-900 mt-0.5">{currentDoctor.name}</h3>
+              <p className="text-xs text-slate-600">{currentDoctor.specialty}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSelectedDoctor('any')}
+            className="text-xs font-semibold text-slate-600 hover:text-blue-600 hover:underline px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white shadow-xs transition cursor-pointer self-end sm:self-center"
+          >
+            Đổi bác sĩ khác
+          </button>
+        </div>
+      )}
+
       {/* Thông báo lỗi nếu có */}
       {formError && (
         <div className="p-4 rounded-2xl bg-red-50 border border-red-200 flex items-center gap-3 text-sm text-red-700">
@@ -478,11 +526,11 @@ const BookingPage = () => {
               </div>
               <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {doctors.map((doc) => {
-                  const isSelected = selectedDoctor === doc.id;
+                  const isSelected = String(selectedDoctor) === String(doc.id);
                   return (
                     <div
                       key={doc.id}
-                      onClick={() => setSelectedDoctor(doc.id)}
+                      onClick={() => setSelectedDoctor(String(doc.id))}
                       className={`cursor-pointer rounded-xl border p-4 transition-all ${
                         isSelected
                           ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-400/50 shadow-xs'

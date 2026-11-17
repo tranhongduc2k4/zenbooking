@@ -6,6 +6,10 @@ export const doctorApi = {
     return axiosClient.get('/doctors');
   },
 
+  getDoctors: () => {
+    return axiosClient.get('/doctors');
+  },
+
   // Thêm bác sĩ mới vào hệ thống
   createDoctor: (data) => {
     return axiosClient.post('/doctors', data);

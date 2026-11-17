@@ -112,16 +112,23 @@ export const RevenueReportPage = () => {
       const [reportRes, aptRes, docRes, srvRes] = await Promise.all([
         revenueApi.getRevenueReport(params).catch(() => null),
         appointmentApi.getAllAppointments(),
-        doctorApi.getAllDoctors().catch(() => ({ data: [] })),
-        dentalServiceApi.getActiveServices().catch(() => ({ data: [] }))
+        doctorApi.getAllDoctors().catch(() => []),
+        dentalServiceApi.getActiveServices().catch(() => [])
       ]);
 
-      if (reportRes && reportRes.data) {
-        setReportData(reportRes.data);
+      const report = reportRes?.kpi ? reportRes : (reportRes?.data || null);
+      if (report && report.kpi) {
+        setReportData(report);
       }
-      setAppointments(aptRes?.data || []);
-      setDoctorsList(docRes?.data || []);
-      setServicesList(srvRes?.data || []);
+
+      const aptList = Array.isArray(aptRes) ? aptRes : (aptRes?.data || []);
+      setAppointments(aptList);
+
+      const docList = Array.isArray(docRes) ? docRes : (docRes?.data || []);
+      setDoctorsList(docList);
+
+      const srvList = Array.isArray(srvRes) ? srvRes : (srvRes?.data || []);
+      setServicesList(srvList);
     } catch (err) {
       console.error('Lỗi khi tải dữ liệu báo cáo doanh thu:', err);
     } finally {

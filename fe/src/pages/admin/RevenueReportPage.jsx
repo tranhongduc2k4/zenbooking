@@ -28,6 +28,7 @@ import {
 import { appointmentApi } from '../../services/appointmentApi';
 import { doctorApi } from '../../services/doctorApi';
 import { dentalServiceApi } from '../../services/dentalServiceApi';
+import { revenueApi } from '../../services/revenueApi';
 
 // Format tiền tệ VNĐ
 const formatCurrency = (amount) => {
@@ -49,6 +50,7 @@ export const RevenueReportPage = () => {
   const [appointments, setAppointments] = useState([]);
   const [doctorsList, setDoctorsList] = useState([]);
   const [servicesList, setServicesList] = useState([]);
+  const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Bộ lọc
@@ -63,30 +65,6 @@ export const RevenueReportPage = () => {
   // Phân trang bảng chi tiết
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 8;
-
-  // Tải dữ liệu từ Backend
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [aptRes, docRes, srvRes] = await Promise.all([
-        appointmentApi.getAllAppointments(),
-        doctorApi.getAllDoctors().catch(() => ({ data: [] })),
-        dentalServiceApi.getActiveServices().catch(() => ({ data: [] }))
-      ]);
-
-      setAppointments(aptRes.data || []);
-      setDoctorsList(docRes.data || []);
-      setServicesList(srvRes.data || []);
-    } catch (err) {
-      console.error('Lỗi khi tải dữ liệu báo cáo doanh thu:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   // Xác định khoảng ngày theo Preset
   const dateRange = useMemo(() => {
@@ -116,6 +94,44 @@ export const RevenueReportPage = () => {
     }
     return { start: '', end: '' }; // ALL
   }, [datePreset, customStartDate, customEndDate]);
+
+  // Tải dữ liệu từ Backend (Gọi đồng thời cả API Revenue Report chuyên biệt lẫn Appointments)
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const docObj = doctorsList.find((d) => d.fullName === selectedDoctor);
+      const srvObj = servicesList.find((s) => s.name === selectedService);
+
+      const params = {
+        startDate: dateRange.start || undefined,
+        endDate: dateRange.end || undefined,
+        doctorId: docObj ? docObj.id : undefined,
+        serviceId: srvObj ? srvObj.id : undefined,
+      };
+
+      const [reportRes, aptRes, docRes, srvRes] = await Promise.all([
+        revenueApi.getRevenueReport(params).catch(() => null),
+        appointmentApi.getAllAppointments(),
+        doctorApi.getAllDoctors().catch(() => ({ data: [] })),
+        dentalServiceApi.getActiveServices().catch(() => ({ data: [] }))
+      ]);
+
+      if (reportRes && reportRes.data) {
+        setReportData(reportRes.data);
+      }
+      setAppointments(aptRes?.data || []);
+      setDoctorsList(docRes?.data || []);
+      setServicesList(srvRes?.data || []);
+    } catch (err) {
+      console.error('Lỗi khi tải dữ liệu báo cáo doanh thu:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [dateRange.start, dateRange.end, selectedDoctor, selectedService]);
 
   // Lọc danh sách lịch hẹn theo các tiêu chí
   const filteredAppointments = useMemo(() => {
@@ -155,8 +171,12 @@ export const RevenueReportPage = () => {
     setCurrentPage(1);
   }, [datePreset, customStartDate, customEndDate, selectedDoctor, selectedService, selectedStatus, searchTerm]);
 
-  // 1. Thống kê KPI tổng quan
+  // 1. Thống kê KPI tổng quan (Ưu tiên dữ liệu SQL Aggregation từ Backend)
   const kpiStats = useMemo(() => {
+    if (selectedStatus === 'ALL' && !searchTerm.trim() && reportData?.kpi) {
+      return reportData.kpi;
+    }
+
     let actualRevenue = 0;       // Tiền từ COMPLETED
     let projectedRevenue = 0;    // Tiền từ CONFIRMED + PENDING
     let completedCount = 0;
@@ -195,10 +215,20 @@ export const RevenueReportPage = () => {
       averageTicket,
       completionRate
     };
-  }, [filteredAppointments]);
+  }, [filteredAppointments, reportData, selectedStatus, searchTerm]);
 
   // 2. Phân bổ Doanh thu theo Dịch vụ (Top Services)
   const serviceBreakdown = useMemo(() => {
+    if (selectedStatus === 'ALL' && !searchTerm.trim() && reportData?.serviceBreakdown?.length > 0) {
+      return reportData.serviceBreakdown.map(s => ({
+        name: s.serviceName,
+        revenue: Number(s.revenue) || 0,
+        count: s.totalCases,
+        completed: s.completedCases,
+        percentage: Math.round(s.percentage)
+      }));
+    }
+
     const map = {};
     filteredAppointments
       .filter((a) => a.status === 'COMPLETED' || a.status === 'CONFIRMED')
@@ -219,10 +249,21 @@ export const RevenueReportPage = () => {
       ...item,
       percentage: Math.round((item.revenue / totalRev) * 100)
     }));
-  }, [filteredAppointments]);
+  }, [filteredAppointments, reportData, selectedStatus, searchTerm]);
 
   // 3. Phân bổ Doanh thu theo Bác sĩ (Doctor Performance)
   const doctorBreakdown = useMemo(() => {
+    if (selectedStatus === 'ALL' && !searchTerm.trim() && reportData?.doctorBreakdown?.length > 0) {
+      return reportData.doctorBreakdown.map(d => ({
+        name: d.doctorName,
+        revenue: Number(d.revenue) || 0,
+        count: d.totalCases,
+        completed: d.completedCases,
+        percentage: Math.round(d.percentage),
+        avgPerCase: Number(d.avgPerCase) || 0
+      }));
+    }
+
     const map = {};
     filteredAppointments
       .filter((a) => a.status === 'COMPLETED' || a.status === 'CONFIRMED')
@@ -244,10 +285,20 @@ export const RevenueReportPage = () => {
       percentage: Math.round((item.revenue / totalRev) * 100),
       avgPerCase: item.completed > 0 ? Math.round(item.revenue / item.completed) : item.revenue
     }));
-  }, [filteredAppointments]);
+  }, [filteredAppointments, reportData, selectedStatus, searchTerm]);
 
   // 4. Biểu đồ doanh thu theo Ngày (Trend Data)
   const trendData = useMemo(() => {
+    if (selectedStatus === 'ALL' && !searchTerm.trim() && reportData?.dailyTrend?.length > 0) {
+      const list = reportData.dailyTrend.map(d => ({
+        date: d.date,
+        actual: Number(d.actualRevenue) || 0,
+        projected: Number(d.projectedRevenue) || 0,
+        count: d.totalCount
+      }));
+      return { list, maxVal: Number(reportData.maxDailyRevenue) || 1000000 };
+    }
+
     const dateMap = {};
     filteredAppointments.forEach((apt) => {
       const d = apt.appointmentDate;
@@ -269,7 +320,7 @@ export const RevenueReportPage = () => {
     const result = sortedDates.map((date) => dateMap[date]);
     const maxVal = Math.max(...result.map((r) => r.actual + r.projected), 1000000);
     return { list: result, maxVal };
-  }, [filteredAppointments]);
+  }, [filteredAppointments, reportData, selectedStatus, searchTerm]);
 
   // 5. Phân trang dữ liệu bảng chi tiết
   const totalItems = filteredAppointments.length;

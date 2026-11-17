@@ -64,5 +64,18 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("doctorId") Long doctorId,
             @Param("search") String search
     );
+
+    @Query("SELECT a FROM Appointment a WHERE " +
+           "(:startDate IS NULL OR a.appointmentDate >= :startDate) AND " +
+           "(:endDate IS NULL OR a.appointmentDate <= :endDate) AND " +
+           "(:doctorId IS NULL OR (a.doctor IS NOT NULL AND a.doctor.id = :doctorId)) AND " +
+           "(:serviceId IS NULL OR (a.service IS NOT NULL AND a.service.id = :serviceId)) " +
+           "ORDER BY a.appointmentDate ASC, a.appointmentTime ASC")
+    List<Appointment> findForRevenueReport(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("doctorId") Long doctorId,
+            @Param("serviceId") Long serviceId
+    );
 }
 

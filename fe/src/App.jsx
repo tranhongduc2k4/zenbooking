@@ -12,6 +12,7 @@ import ServicesManagementPage from './pages/admin/ServicesManagementPage';
 import AppointmentsManagementPage from './pages/admin/AppointmentsManagementPage';
 import PatientsManagementPage from './pages/admin/PatientsManagementPage';
 import DoctorsManagementPage from './pages/admin/DoctorsManagementPage';
+import RevenueReportPage from './pages/admin/RevenueReportPage';
 import AdminPlaceholderPage from './pages/admin/AdminPlaceholderPage';
 import { UserCheck, DollarSign, Settings } from 'lucide-react';
 import LoginPage from './pages/auth/LoginPage';
@@ -50,7 +51,7 @@ function App() {
             <Route path="patients" element={<PatientsManagementPage />} />
             <Route path="services" element={<ServicesManagementPage />} />
             <Route path="doctors" element={<DoctorsManagementPage />} />
-            <Route path="revenue" element={<AdminPlaceholderPage title="Doanh thu & Báo cáo Tài chính" description="Thống kê doanh thu ca khám, phân tích tỷ trọng dịch vụ nha khoa và hiệu suất kinh doanh." icon={DollarSign} />} />
+            <Route path="revenue" element={<RevenueReportPage />} />
             <Route path="settings" element={<AdminPlaceholderPage title="Cài đặt Hệ thống Phòng khám" description="Cấu hình thông tin cơ sở phòng khám, khung giờ làm việc và quy chuẩn bảo mật y tế." icon={Settings} />} />
           </Route>
         </Route>

@@ -40,6 +40,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             } catch (Exception ignored) {
                 // Token lỗi hoặc hết hạn, SecurityContextHolder giữ nguyên null
             }
+        } else {
+            String paramToken = request.getParameter("token");
+            if (StringUtils.hasText(paramToken)) {
+                token = paramToken;
+                try {
+                    username = jwtUtil.extractUsername(token);
+                } catch (Exception ignored) {
+                }
+            }
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {

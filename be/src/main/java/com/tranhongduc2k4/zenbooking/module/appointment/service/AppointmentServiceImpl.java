@@ -39,6 +39,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final DentalServiceRepository dentalServiceRepository;
     private final UserRepository userRepository;
+    private final com.tranhongduc2k4.zenbooking.module.notification.service.NotificationService notificationService;
     private static final SecureRandom RANDOM = new SecureRandom();
 
     @Override
@@ -126,6 +127,22 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Appointment saved = appointmentRepository.save(appointment);
         log.info("Đã tạo lịch hẹn thành công với mã: {}", saved.getAppointmentCode());
+
+        // Bắn thông báo thời gian thực tới Admin
+        try {
+            com.tranhongduc2k4.zenbooking.module.notification.entity.Notification notif = com.tranhongduc2k4.zenbooking.module.notification.entity.Notification.builder()
+                    .title("Lịch khám mới cần duyệt")
+                    .message("Bệnh nhân " + saved.getPatientName() + " vừa đặt lịch " + saved.getServiceName() + " lúc " + saved.getAppointmentTime() + " ngày " + saved.getAppointmentDate() + ".")
+                    .type(com.tranhongduc2k4.zenbooking.module.notification.entity.NotificationType.APPOINTMENT_NEW)
+                    .recipientRole(Role.ADMIN)
+                    .referenceId(saved.getId())
+                    .referenceCode(saved.getAppointmentCode())
+                    .read(false)
+                    .build();
+            notificationService.createAndSend(notif);
+        } catch (Exception e) {
+            log.warn("Không thể gửi thông báo đặt lịch tới Admin: {}", e.getMessage());
+        }
 
         return mapToResponse(saved);
     }
@@ -223,6 +240,50 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Appointment updated = appointmentRepository.save(apt);
         log.info("Cập nhật trạng thái lịch hẹn {} sang {}", apt.getAppointmentCode(), request.getStatus());
+
+        // Bắn thông báo thời gian thực tới Bệnh nhân khi trạng thái thay đổi
+        try {
+            if (updated.getPatient() != null) {
+                com.tranhongduc2k4.zenbooking.module.notification.entity.Notification notif = null;
+                if (request.getStatus() == AppointmentStatus.CONFIRMED) {
+                    notif = com.tranhongduc2k4.zenbooking.module.notification.entity.Notification.builder()
+                            .recipient(updated.getPatient())
+                            .title("Lịch khám đã được xác nhận")
+                            .message("Lịch hẹn " + updated.getServiceName() + " (Mã: " + updated.getAppointmentCode() + ") lúc " + updated.getAppointmentTime() + " ngày " + updated.getAppointmentDate() + " đã được xác nhận thành công!")
+                            .type(com.tranhongduc2k4.zenbooking.module.notification.entity.NotificationType.APPOINTMENT_CONFIRMED)
+                            .referenceId(updated.getId())
+                            .referenceCode(updated.getAppointmentCode())
+                            .read(false)
+                            .build();
+                } else if (request.getStatus() == AppointmentStatus.COMPLETED) {
+                    notif = com.tranhongduc2k4.zenbooking.module.notification.entity.Notification.builder()
+                            .recipient(updated.getPatient())
+                            .title("Ca điều trị đã hoàn thành")
+                            .message("Ca khám " + updated.getServiceName() + " (Mã: " + updated.getAppointmentCode() + ") đã hoàn tất. ZenBooking chúc bạn có nụ cười tự tin và rạng rỡ!")
+                            .type(com.tranhongduc2k4.zenbooking.module.notification.entity.NotificationType.APPOINTMENT_COMPLETED)
+                            .referenceId(updated.getId())
+                            .referenceCode(updated.getAppointmentCode())
+                            .read(false)
+                            .build();
+                } else if (request.getStatus() == AppointmentStatus.CANCELLED) {
+                    notif = com.tranhongduc2k4.zenbooking.module.notification.entity.Notification.builder()
+                            .recipient(updated.getPatient())
+                            .title("Lịch khám đã bị hủy")
+                            .message("Lịch hẹn " + updated.getAppointmentCode() + " đã bị hủy." + (updated.getCancellationReason() != null ? " Lý do: " + updated.getCancellationReason() : ""))
+                            .type(com.tranhongduc2k4.zenbooking.module.notification.entity.NotificationType.APPOINTMENT_CANCELLED)
+                            .referenceId(updated.getId())
+                            .referenceCode(updated.getAppointmentCode())
+                            .read(false)
+                            .build();
+                }
+                if (notif != null) {
+                    notificationService.createAndSend(notif);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Không thể gửi thông báo cập nhật lịch tới Bệnh nhân: {}", e.getMessage());
+        }
+
         return mapToResponse(updated);
     }
 
@@ -249,6 +310,23 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Appointment cancelled = appointmentRepository.save(apt);
         log.info("Bệnh nhân {} đã hủy lịch hẹn {}", currentUser.getFullName(), apt.getAppointmentCode());
+
+        // Bắn thông báo thời gian thực tới Admin khi bệnh nhân hủy ca khám
+        try {
+            com.tranhongduc2k4.zenbooking.module.notification.entity.Notification notif = com.tranhongduc2k4.zenbooking.module.notification.entity.Notification.builder()
+                    .title("Bệnh nhân hủy ca khám")
+                    .message("Bệnh nhân " + currentUser.getFullName() + " đã hủy lịch hẹn " + cancelled.getAppointmentCode() + ". Lý do: " + cancelled.getCancellationReason())
+                    .type(com.tranhongduc2k4.zenbooking.module.notification.entity.NotificationType.APPOINTMENT_CANCELLED)
+                    .recipientRole(Role.ADMIN)
+                    .referenceId(cancelled.getId())
+                    .referenceCode(cancelled.getAppointmentCode())
+                    .read(false)
+                    .build();
+            notificationService.createAndSend(notif);
+        } catch (Exception e) {
+            log.warn("Không thể gửi thông báo hủy ca tới Admin: {}", e.getMessage());
+        }
+
         return mapToResponse(cancelled);
     }
 

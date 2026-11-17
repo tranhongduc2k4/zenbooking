@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { Calendar, Phone, Clock, MapPin, Menu, X, Shield, ChevronRight, User, LogOut } from 'lucide-react';
+import { NotificationBell } from '../components/common/NotificationBell';
 
 const PatientLayout = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -86,6 +87,7 @@ const PatientLayout = () => {
             <div className="hidden md:flex items-center space-x-4">
               {token ? (
                 <div className="flex items-center gap-3">
+                  <NotificationBell theme="light" />
                   <Link
                     to="/patient-home"
                     className="flex items-center gap-2 text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3.5 py-2 rounded-xl transition-colors border border-blue-200"

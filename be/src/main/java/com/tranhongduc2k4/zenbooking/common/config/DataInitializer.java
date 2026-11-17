@@ -27,12 +27,14 @@ public class DataInitializer implements CommandLineRunner {
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.tranhongduc2k4.zenbooking.module.notification.service.NotificationService notificationService;
 
     @Override
     public void run(String... args) {
         initUsers();
         initServices();
         initAppointments();
+        notificationService.initSampleNotificationsIfEmpty();
     }
 
     private void initUsers() {

@@ -16,6 +16,7 @@ import RevenueReportPage from './pages/admin/RevenueReportPage';
 import ClinicSettingsPage from './pages/admin/ClinicSettingsPage';
 import AdminPlaceholderPage from './pages/admin/AdminPlaceholderPage';
 import { UserCheck, DollarSign, Settings } from 'lucide-react';
+import { NotificationProvider } from './context/NotificationContext';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import UnauthorizedPage from './pages/error/UnauthorizedPage';
@@ -24,7 +25,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <NotificationProvider>
+        <Routes>
         {/* 1. Public Routes (Khách vãng lai chưa đăng nhập) */}
         <Route path="/" element={<PatientLayout />}>
           <Route index element={<LandingPage />} />
@@ -60,7 +62,8 @@ function App() {
         {/* Fallback điều hướng về trang chủ */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </NotificationProvider>
+  </BrowserRouter>
   );
 }
 

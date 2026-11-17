@@ -12,6 +12,7 @@ import {
   PhoneCall
 } from 'lucide-react';
 import UserAccountDropdown from '../components/UserAccountDropdown';
+import { NotificationBell } from '../components/common/NotificationBell';
 
 const PatientPortalLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -204,15 +205,8 @@ const PatientPortalLayout = () => {
               <span>Đặt lịch khám</span>
             </Link>
 
-            {/* Notifications */}
-            <button
-              type="button"
-              title="Thông báo lịch hẹn"
-              className="relative p-2 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full ring-2 ring-white" />
-            </button>
+            {/* Real-time Notifications */}
+            <NotificationBell theme="light" />
 
             <div className="h-5 w-px bg-slate-200 hidden sm:block" />
 

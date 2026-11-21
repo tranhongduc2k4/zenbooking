@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { User, Phone, Mail, Lock, Eye, EyeOff, ShieldCheck, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import authApi from '../../services/authApi';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
+
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -49,8 +52,9 @@ const RegisterPage = () => {
 
       setSuccessMessage('Đăng ký tài khoản thành công! Đang chuyển hướng sang trang Đăng nhập...');
       setTimeout(() => {
-        navigate('/login');
-      }, 1800);
+        const loginUrl = redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login';
+        navigate(loginUrl);
+      }, 1500);
     } catch (error) {
       const msg = error.response?.data?.message || 'Đăng ký không thành công, vui lòng thử lại!';
       setErrorMessage(msg);
@@ -236,7 +240,10 @@ const RegisterPage = () => {
         {/* Footer chuyển hướng Đăng nhập */}
         <div className="mt-6 text-center text-xs text-slate-500">
           Đã có tài khoản?{' '}
-          <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-500">
+          <Link
+            to={redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : '/login'}
+            className="font-semibold text-blue-600 hover:text-blue-500"
+          >
             Đăng nhập ngay
           </Link>
         </div>

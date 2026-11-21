@@ -11,6 +11,12 @@ import DashboardPage from './pages/admin/DashboardPage';
 import ServicesManagementPage from './pages/admin/ServicesManagementPage';
 import AppointmentsManagementPage from './pages/admin/AppointmentsManagementPage';
 import PatientsManagementPage from './pages/admin/PatientsManagementPage';
+import DoctorsManagementPage from './pages/admin/DoctorsManagementPage';
+import RevenueReportPage from './pages/admin/RevenueReportPage';
+import ClinicSettingsPage from './pages/admin/ClinicSettingsPage';
+import AdminPlaceholderPage from './pages/admin/AdminPlaceholderPage';
+import { UserCheck, DollarSign, Settings } from 'lucide-react';
+import { NotificationProvider } from './context/NotificationContext';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import UnauthorizedPage from './pages/error/UnauthorizedPage';
@@ -19,7 +25,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <NotificationProvider>
+        <Routes>
         {/* 1. Public Routes (Khách vãng lai chưa đăng nhập) */}
         <Route path="/" element={<PatientLayout />}>
           <Route index element={<LandingPage />} />
@@ -46,13 +53,17 @@ function App() {
             <Route path="appointments" element={<AppointmentsManagementPage />} />
             <Route path="patients" element={<PatientsManagementPage />} />
             <Route path="services" element={<ServicesManagementPage />} />
+            <Route path="doctors" element={<DoctorsManagementPage />} />
+            <Route path="revenue" element={<RevenueReportPage />} />
+            <Route path="settings" element={<ClinicSettingsPage />} />
           </Route>
         </Route>
 
         {/* Fallback điều hướng về trang chủ */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </NotificationProvider>
+  </BrowserRouter>
   );
 }
 

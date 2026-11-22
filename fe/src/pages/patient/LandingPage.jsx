@@ -19,12 +19,12 @@ import { dentalServiceApi } from '../../services/dentalServiceApi';
 import { ServiceIcon } from '../../components/common/ServiceIcon';
 
 const DEFAULT_SERVICES_LIST = [
-  { id: 1, name: 'Khám tổng quát & Tư vấn', price: 'Miễn phí', time: '20 phút', icon: 'Stethoscope', description: 'Bác sĩ kiểm tra răng miệng toàn diện, chụp phim X-quang và lên phác đồ điều trị chuẩn xác.', tag: 'Khuyên dùng' },
-  { id: 2, name: 'Cạo vôi & Đánh bóng siêu âm', price: '200.000đ', time: '30 phút', icon: 'Sparkles', description: 'Làm sạch mảng bám, vôi răng bằng công nghệ sóng siêu âm êm ái, mang lại hơi thở thơm mát.', tag: 'Phổ biến' },
-  { id: 3, name: 'Tẩy trắng răng Laser Whitening', price: '1.500.000đ', time: '45 phút', icon: 'Zap', description: 'Bật từ 2-3 tông chỉ sau 45 phút với công nghệ Laser Whitening độc quyền, bảo vệ men răng.', tag: 'Bán chạy' },
-  { id: 4, name: 'Nhổ răng khôn không đau Piezotome', price: '1.000.000đ', time: '30 phút', icon: 'ShieldCheck', description: 'Công nghệ nhổ răng Piezotome rung siêu âm, không xâm lấn mô mềm, lành thương nhanh chóng.', tag: 'Không đau' },
-  { id: 5, name: 'Niềng răng mắc cài / Khay trong suốt', price: 'Từ 18.000.000đ', time: '45 phút', icon: 'Smile', description: 'Lập phác đồ dịch chuyển răng 3D chuẩn xác, đa dạng lựa chọn mắc cài hoặc khay vô hình.', tag: 'Trả góp 0%' },
-  { id: 6, name: 'Cấy ghép Implant thẩm mỹ', price: 'Từ 12.000.000đ', time: '60 phút', icon: 'Layers', description: 'Phục hồi răng đã mất hoàn hảo với trụ Titanium cao cấp nhập khẩu Thụy Sĩ, bảo hành trọn đời.', tag: 'Bảo hành trọn đời' },
+  { id: 1, name: 'Khám tổng quát & Tư vấn', price: 'Miễn phí', rawPrice: 0, time: '20 phút', icon: 'Stethoscope', code: 'GENERAL_EXAM', description: 'Bác sĩ kiểm tra răng miệng toàn diện, chụp phim X-quang và lên phác đồ điều trị chuẩn xác.', tag: 'Khuyên dùng' },
+  { id: 2, name: 'Cạo vôi & Đánh bóng siêu âm', price: '200.000đ', rawPrice: 200000, time: '30 phút', icon: 'Sparkles', code: 'SCALING_POLISHING', description: 'Làm sạch mảng bám, vôi răng bằng công nghệ sóng siêu âm êm ái, mang lại hơi thở thơm mát.', tag: 'Phổ biến' },
+  { id: 4, name: 'Nhổ răng khôn không đau Piezotome', price: '1.000.000đ', rawPrice: 1000000, time: '30 phút', icon: 'ShieldCheck', code: 'PIEZOTOME_EXTRACTION', description: 'Công nghệ nhổ răng Piezotome rung siêu âm, không xâm lấn mô mềm, lành thương nhanh chóng.', tag: 'Không đau' },
+  { id: 3, name: 'Tẩy trắng răng Laser Whitening', price: '1.500.000đ', rawPrice: 1500000, time: '45 phút', icon: 'Zap', code: 'LASER_WHITENING', description: 'Bật từ 2-3 tông chỉ sau 45 phút với công nghệ Laser Whitening độc quyền, bảo vệ men răng.', tag: 'Bán chạy' },
+  { id: 6, name: 'Cấy ghép Implant thẩm mỹ', price: 'Từ 12.000.000đ', rawPrice: 12000000, time: '60 phút', icon: 'Layers', code: 'DENTAL_IMPLANT', description: 'Phục hồi răng đã mất hoàn hảo với trụ Titanium cao cấp nhập khẩu Thụy Sĩ, bảo hành trọn đời.', tag: 'Bảo hành trọn đời' },
+  { id: 5, name: 'Niềng răng mắc cài / Khay trong suốt', price: 'Từ 18.000.000đ', rawPrice: 18000000, time: '45 phút', icon: 'Smile', code: 'ORTHODONTICS_BRACES', description: 'Lập phác đồ dịch chuyển răng 3D chuẩn xác, đa dạng lựa chọn mắc cài hoặc khay vô hình.', tag: 'Trả góp 0%' },
 ];
 
 const DEFAULT_DOCTORS_LIST = [
@@ -51,7 +51,9 @@ const LandingPage = () => {
         const res = await dentalServiceApi.getActiveServices();
         const dataList = Array.isArray(res) ? res : (res?.data || []);
         if (dataList && dataList.length > 0) {
-          const mapped = dataList.map((item) => {
+          // Sắp xếp tăng dần theo giá: Giá thấp nhất ở đầu, giá cao nhất ở cuối cùng
+          const sortedList = [...dataList].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+          const mapped = sortedList.map((item) => {
             const rawPrice = Number(item.price);
             let displayPrice = 'Miễn phí';
             if (rawPrice > 0) {
@@ -63,6 +65,9 @@ const LandingPage = () => {
             return {
               id: item.id,
               name: item.name,
+              code: item.code,
+              category: item.category,
+              rawPrice: rawPrice,
               price: displayPrice,
               time: `${item.estimatedDurationMinutes} phút`,
               icon: item.icon || 'Stethoscope',

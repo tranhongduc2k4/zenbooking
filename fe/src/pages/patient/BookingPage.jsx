@@ -29,14 +29,14 @@ const BookingPage = () => {
   const doctorIdFromUrl = searchParams.get('doctorId');
   const serviceIdFromUrl = searchParams.get('serviceId');
 
-  // Danh mục dịch vụ mặc định chuẩn nha khoa (fallback)
+  // Danh mục dịch vụ mặc định chuẩn nha khoa (fallback theo thứ tự giá tăng dần)
   const DEFAULT_SERVICES = [
-    { id: '1', name: 'Khám tổng quát & Tư vấn', price: 'Miễn phí', time: '20 phút', icon: 'Stethoscope', category: 'Tổng quát' },
-    { id: '2', name: 'Cạo vôi & Đánh bóng siêu âm', price: '200.000đ', time: '30 phút', icon: 'Sparkles', category: 'Vệ sinh' },
-    { id: '3', name: 'Tẩy trắng răng Laser Whitening', price: '1.500.000đ', time: '45 phút', icon: 'Zap', category: 'Thẩm mỹ' },
-    { id: '4', name: 'Nhổ răng khôn không đau Piezotome', price: '1.000.000đ', time: '30 phút', icon: 'ShieldCheck', category: 'Tiểu phẫu' },
-    { id: '5', name: 'Niềng răng mắc cài / Khay trong suốt', price: '18.000.000đ', time: '45 phút', icon: 'Smile', category: 'Chỉnh nha' },
-    { id: '6', name: 'Cấy ghép Implant thẩm mỹ', price: '12.000.000đ', time: '60 phút', icon: 'Layers', category: 'Implant' },
+    { id: '1', name: 'Khám tổng quát & Tư vấn', price: 'Miễn phí', rawPrice: 0, time: '20 phút', icon: 'Stethoscope', category: 'Tổng quát', code: 'GENERAL_EXAM' },
+    { id: '2', name: 'Cạo vôi & Đánh bóng siêu âm', price: '200.000đ', rawPrice: 200000, time: '30 phút', icon: 'Sparkles', category: 'Vệ sinh', code: 'SCALING_POLISHING' },
+    { id: '4', name: 'Nhổ răng khôn không đau Piezotome', price: '1.000.000đ', rawPrice: 1000000, time: '30 phút', icon: 'ShieldCheck', category: 'Tiểu phẫu', code: 'PIEZOTOME_EXTRACTION' },
+    { id: '3', name: 'Tẩy trắng răng Laser Whitening', price: '1.500.000đ', rawPrice: 1500000, time: '45 phút', icon: 'Zap', category: 'Thẩm mỹ', code: 'LASER_WHITENING' },
+    { id: '6', name: 'Cấy ghép Implant thẩm mỹ', price: '12.000.000đ', rawPrice: 12000000, time: '60 phút', icon: 'Layers', category: 'Implant', code: 'DENTAL_IMPLANT' },
+    { id: '5', name: 'Niềng răng mắc cài / Khay trong suốt', price: '18.000.000đ', rawPrice: 18000000, time: '45 phút', icon: 'Smile', category: 'Chỉnh nha', code: 'ORTHODONTICS_BRACES' },
   ];
 
   // Danh sách bác sĩ mặc định dự phòng
@@ -160,9 +160,13 @@ const BookingPage = () => {
         const res = await dentalServiceApi.getActiveServices();
         const dataList = Array.isArray(res) ? res : (res?.data || []);
         if (dataList && dataList.length > 0) {
-          const mapped = dataList.map((item) => ({
+          // Sắp xếp tăng dần theo giá: Giá thấp nhất đầu tiên, giá cao nhất ở cuối cùng
+          const sortedList = [...dataList].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+          const mapped = sortedList.map((item) => ({
             id: String(item.id),
             name: item.name,
+            code: item.code,
+            rawPrice: Number(item.price) || 0,
             price: Number(item.price) === 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN').format(item.price) + 'đ',
             time: `${item.estimatedDurationMinutes} phút`,
             icon: item.icon || 'Stethoscope',
@@ -822,8 +826,12 @@ const BookingPage = () => {
               <div className="px-5 py-4 space-y-3">
                 <div>
                   <span className="text-[11px] text-slate-400">Dịch vụ điều trị:</span>
-                  <div className="flex items-start gap-2 mt-1">
-                    <span className="text-lg">{currentService?.icon}</span>
+                  <div className="flex items-start gap-2.5 mt-1">
+                    <ServiceIcon 
+                      service={currentService} 
+                      className="w-4 h-4 text-blue-600" 
+                      containerClassName="w-6 h-6 rounded-md bg-blue-50 border border-blue-100/80 flex items-center justify-center shrink-0 mt-0.5" 
+                    />
                     <span className="text-sm font-semibold text-slate-900 leading-tight">{currentService?.name}</span>
                   </div>
                 </div>

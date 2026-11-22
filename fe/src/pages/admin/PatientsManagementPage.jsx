@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { patientApi } from '../../services/patientApi';
 import { parseClinicalRecord } from '../../utils/clinicalHelpers';
+import { printMedicalRecord } from '../../utils/printPrescription';
 
 const PatientsManagementPage = () => {
   const [patients, setPatients] = useState([]);
@@ -804,11 +805,19 @@ const PatientsManagementPage = () => {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => window.print()}
-                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  onClick={() => {
+                    const latestApt = selectedPatient?.history?.[0] || {
+                      patientName: selectedPatient?.fullName,
+                      patientPhone: selectedPatient?.phone,
+                      serviceName: 'Hồ sơ khám chữa răng miệng tổng quát',
+                      notes: selectedPatient?.notes,
+                    };
+                    printMedicalRecord(latestApt, selectedPatient);
+                  }}
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all active:scale-95"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  In hồ sơ bệnh án
+                  Xuất file PDF / In hồ sơ
                 </button>
                 <button
                   type="button"

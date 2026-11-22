@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { appointmentApi } from '../../services/appointmentApi';
 import { parseClinicalRecord } from '../../utils/clinicalHelpers';
+import { printMedicalRecord } from '../../utils/printPrescription';
 
 const MedicalHistoryPage = () => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -404,17 +405,27 @@ const MedicalHistoryPage = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         {renderStatusBadge(apt.status)}
                         <button
+                          type="button"
                           onClick={() => {
                             setSelectedRecord(apt);
                             setShowDetailModal(true);
                           }}
                           className="px-3 py-1.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-xs font-semibold text-slate-700 hover:text-blue-700 transition-colors flex items-center gap-1.5 cursor-pointer"
                         >
-                          <Printer className="w-3.5 h-3.5" />
-                          <span>Phiếu y bạ</span>
+                          <Printer className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Xem phiếu</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => printMedicalRecord(apt, currentUser)}
+                          title="Xuất file PDF hoặc In phiếu khám A4 chuẩn y khoa"
+                          className="px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 hover:bg-blue-600 hover:text-white text-xs font-bold text-blue-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Xuất PDF</span>
                         </button>
                       </div>
                     </div>
@@ -655,11 +666,11 @@ const MedicalHistoryPage = () => {
             <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
               <button
                 type="button"
-                onClick={() => window.print()}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-xs"
+                onClick={() => printMedicalRecord(selectedRecord, currentUser)}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs transition-all active:scale-95"
               >
                 <Printer className="w-4 h-4" />
-                In phiếu y bạ
+                Xuất file PDF / In phiếu khám
               </button>
               <button
                 type="button"

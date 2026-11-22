@@ -337,15 +337,9 @@ export const printMedicalRecord = (record, patientInfo = {}) => {
       page-break-inside: avoid;
     }
     .sign-cell {
-      width: 38%;
+      width: 50%;
       text-align: center;
       vertical-align: top;
-    }
-    .qr-cell {
-      width: 24%;
-      text-align: center;
-      vertical-align: middle;
-      padding: 0 4px;
     }
     .sign-title {
       font-size: 9.5pt;
@@ -516,44 +510,6 @@ export const printMedicalRecord = (record, patientInfo = {}) => {
           <div class="sign-sub">(Ký và ghi rõ họ tên)</div>
           <div class="sign-space-patient"></div>
           <div style="font-size: 8pt; color: #94a3b8; font-style: italic;">Chữ ký người nhận</div>
-        </td>
-
-        <!-- Mã QR xác thực y bạ điện tử -->
-        <td class="qr-cell">
-          <svg width="68" height="68" viewBox="0 0 100 100" style="display: block; margin: 0 auto;">
-            <rect x="0" y="0" width="100" height="100" fill="white" stroke="#64748b" stroke-width="1"/>
-            <rect x="8" y="8" width="28" height="28" fill="none" stroke="#000" stroke-width="4"/>
-            <rect x="16" y="16" width="12" height="12" fill="#000"/>
-            <rect x="64" y="8" width="28" height="28" fill="none" stroke="#000" stroke-width="4"/>
-            <rect x="72" y="16" width="12" height="12" fill="#000"/>
-            <rect x="8" y="64" width="28" height="28" fill="none" stroke="#000" stroke-width="4"/>
-            <rect x="16" y="72" width="12" height="12" fill="#000"/>
-            <rect x="42" y="10" width="6" height="6" fill="#000"/>
-            <rect x="52" y="14" width="6" height="6" fill="#000"/>
-            <rect x="44" y="24" width="6" height="6" fill="#000"/>
-            <rect x="10" y="42" width="6" height="6" fill="#000"/>
-            <rect x="22" y="44" width="6" height="6" fill="#000"/>
-            <rect x="32" y="42" width="6" height="6" fill="#000"/>
-            <rect x="42" y="42" width="6" height="6" fill="#000"/>
-            <rect x="52" y="42" width="6" height="6" fill="#000"/>
-            <rect x="62" y="44" width="6" height="6" fill="#000"/>
-            <rect x="72" y="42" width="6" height="6" fill="#000"/>
-            <rect x="84" y="44" width="6" height="6" fill="#000"/>
-            <rect x="44" y="52" width="6" height="6" fill="#000"/>
-            <rect x="54" y="54" width="6" height="6" fill="#000"/>
-            <rect x="64" y="52" width="6" height="6" fill="#000"/>
-            <rect x="42" y="64" width="6" height="6" fill="#000"/>
-            <rect x="52" y="72" width="6" height="6" fill="#000"/>
-            <rect x="64" y="68" width="6" height="6" fill="#000"/>
-            <rect x="74" y="74" width="6" height="6" fill="#000"/>
-            <rect x="84" y="64" width="6" height="6" fill="#000"/>
-            <rect x="44" y="84" width="6" height="6" fill="#000"/>
-            <rect x="54" y="82" width="6" height="6" fill="#000"/>
-            <rect x="74" y="84" width="6" height="6" fill="#000"/>
-            <rect x="84" y="82" width="6" height="6" fill="#000"/>
-          </svg>
-          <div style="font-size: 7.5pt; color: #475569; margin-top: 2px; font-weight: 600;">Quét mã tra cứu</div>
-          <div style="font-size: 6.5pt; color: #64748b; font-family: monospace;">zenbooking.vn/verify</div>
         </td>
 
         <!-- Khối Bác sĩ điều trị & Chữ ký số -->

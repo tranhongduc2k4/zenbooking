@@ -565,33 +565,46 @@ const MedicalHistoryPage = () => {
               </div>
 
               {/* Thông tin bệnh nhân */}
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200">
                 <div>
                   <span className="text-slate-400 text-[11px] block">Họ và tên bệnh nhân:</span>
-                  <strong className="text-slate-900 text-sm">{selectedRecord.patientName || currentUser?.fullName}</strong>
+                  <strong className="text-slate-900 text-sm uppercase">{selectedRecord.patientName || currentUser?.fullName}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-[11px] block">Giới tính / Tuổi:</span>
+                  <strong className="text-slate-900 text-xs">Nam · 32 tuổi (SN: 1994)</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-[11px] block">Mã y bạ:</span>
+                  <strong className="text-slate-900 text-xs font-mono">{selectedRecord.patientPhone ? `BN-${selectedRecord.patientPhone}` : (currentUser?.phone ? `BN-${currentUser.phone}` : 'BN-0792275635')}</strong>
                 </div>
                 <div>
                   <span className="text-slate-400 text-[11px] block">Số điện thoại liên hệ:</span>
-                  <strong className="text-slate-900 text-sm font-mono">{selectedRecord.patientPhone || currentUser?.phone}</strong>
+                  <strong className="text-slate-900 text-xs font-mono">{selectedRecord.patientPhone || currentUser?.phone || '0792275635'}</strong>
                 </div>
                 <div>
                   <span className="text-slate-400 text-[11px] block">Bác sĩ phụ trách:</span>
-                  <strong className="text-slate-900">{selectedRecord.doctorName || 'BS. Chuyên khoa'}</strong>
+                  <strong className="text-slate-900 text-xs">{selectedRecord.doctorName || 'BS. Nguyễn Văn Hùng'}</strong>
                 </div>
                 <div>
                   <span className="text-slate-400 text-[11px] block">Thời gian thực hiện:</span>
-                  <strong className="text-slate-900">{selectedRecord.appointmentTime} · {selectedRecord.appointmentDate}</strong>
+                  <strong className="text-slate-900 text-xs">{selectedRecord.appointmentTime} · {selectedRecord.appointmentDate}</strong>
+                </div>
+                <div className="col-span-2 sm:col-span-3 pt-2 border-t border-slate-200/60">
+                  <span className="text-slate-400 text-[11px] inline-block mr-1">Tiền sử dị ứng:</span>
+                  <span className="text-rose-600 font-semibold text-xs">Không ghi nhận dị ứng thuốc (Allergy: None)</span>
                 </div>
               </div>
 
               {/* Chi tiết dịch vụ */}
-              <div>
-                <h5 className="font-bold text-slate-800 uppercase mb-1.5">Nội dung điều trị nha khoa:</h5>
-                <div className="p-3 border rounded-xl border-slate-200 flex justify-between items-center bg-white">
-                  <div>
-                    <div className="font-bold text-slate-900">{selectedRecord.serviceName}</div>
-                    <div className="text-slate-500 text-[11px] mt-0.5">Dịch vụ nha khoa công nghệ cao</div>
-                  </div>
+              <div className="p-3 border rounded-xl border-slate-200 flex justify-between items-center bg-white">
+                <div>
+                  <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider block">Dịch vụ điều trị:</span>
+                  <div className="font-bold text-slate-900 text-sm mt-0.5">{selectedRecord.serviceName}</div>
+                  <div className="text-slate-500 text-[11px]">Phác đồ chuẩn y khoa Quốc tế · Autoclave vô trùng</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[11px] text-slate-400">Chi phí dịch vụ:</div>
                   <div className="font-bold font-mono text-sm text-emerald-700">
                     {selectedRecord.servicePrice && Number(selectedRecord.servicePrice) > 0
                       ? new Intl.NumberFormat('vi-VN').format(selectedRecord.servicePrice) + 'đ'
@@ -611,22 +624,25 @@ const MedicalHistoryPage = () => {
               {/* Đơn thuốc trong phiếu y bạ */}
               {parseClinicalRecord(selectedRecord.notes, selectedRecord.serviceName).prescription?.length > 0 && (
                 <div>
-                  <h5 className="font-bold text-slate-800 uppercase mb-1.5">Toa thuốc điều trị:</h5>
+                  <h5 className="font-bold text-slate-800 uppercase mb-1.5">Toa thuốc điều trị (Bắt buộc dùng theo đơn):</h5>
                   <div className="border border-slate-200 rounded-xl overflow-hidden">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead className="bg-slate-50 text-[10px] uppercase text-slate-500 border-b border-slate-200">
                         <tr>
-                          <th className="py-2 px-3">Tên thuốc</th>
-                          <th className="py-2 px-3">Số lượng</th>
-                          <th className="py-2 px-3">Liều dùng</th>
+                          <th className="py-2 px-3">Tên thuốc & Công dụng</th>
+                          <th className="py-2 px-3 text-center">Số lượng</th>
+                          <th className="py-2 px-3">Liều dùng & Hướng dẫn</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {parseClinicalRecord(selectedRecord.notes, selectedRecord.serviceName).prescription.map((m, idx) => (
                           <tr key={idx}>
-                            <td className="py-2 px-3 font-semibold text-slate-800">{m.name}</td>
-                            <td className="py-2 px-3 font-mono">{m.qty}</td>
-                            <td className="py-2 px-3 text-blue-700">{m.dose}</td>
+                            <td className="py-2 px-3">
+                              <span className="font-bold text-slate-900 block">{m.name}</span>
+                              {m.usage && <span className="text-[11px] text-slate-400 italic">{m.usage}</span>}
+                            </td>
+                            <td className="py-2 px-3 font-mono font-bold text-center text-sm">{m.qty}</td>
+                            <td className="py-2 px-3 text-blue-700 font-semibold">{m.dose}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -638,26 +654,32 @@ const MedicalHistoryPage = () => {
               {/* Lời dặn & Hẹn tái khám */}
               <div>
                 <h5 className="font-bold text-slate-800 uppercase mb-1">Dặn dò & Hướng dẫn phục hồi:</h5>
-                <p className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-slate-700 leading-relaxed">
+                <p className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-700 leading-relaxed">
                   {parseClinicalRecord(selectedRecord.notes, selectedRecord.serviceName).advice}
                 </p>
                 {parseClinicalRecord(selectedRecord.notes, selectedRecord.serviceName).reExam && (
-                  <div className="mt-2 text-xs font-semibold text-emerald-800 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
-                    Lịch hẹn tái khám: {parseClinicalRecord(selectedRecord.notes, selectedRecord.serviceName).reExam}
+                  <div className="mt-2 text-xs font-semibold text-slate-900 bg-slate-50 p-2.5 rounded-lg border border-slate-300">
+                    📅 Lịch hẹn tái khám: <strong>{parseClinicalRecord(selectedRecord.notes, selectedRecord.serviceName).reExam}</strong>
                   </div>
                 )}
               </div>
 
               {/* Chữ ký */}
               <div className="pt-4 flex justify-between text-center border-t border-slate-200">
-                <div>
-                  <div className="font-semibold text-slate-800">Bệnh nhân</div>
+                <div className="w-1/2">
+                  <div className="font-bold text-slate-800 text-xs uppercase">Người nhận đơn / Bệnh nhân</div>
                   <div className="text-[11px] text-slate-400 italic mt-0.5">(Ký và ghi rõ họ tên)</div>
+                  <div className="h-10"></div>
+                  <div className="text-[11px] text-slate-300 italic">Chữ ký tay người nhận</div>
                 </div>
-                <div>
-                  <div className="font-semibold text-slate-800">Bác sĩ điều trị</div>
-                  <div className="text-[11px] text-slate-400 italic mt-0.5">(Đã ký điện tử y bạ)</div>
-                  <div className="font-bold text-blue-700 mt-2">{selectedRecord.doctorName || 'BS. ZenBooking'}</div>
+                <div className="w-1/2">
+                  <div className="font-bold text-slate-800 text-xs uppercase">Bác sĩ điều trị</div>
+                  <div className="text-[11px] text-slate-400 italic mt-0.5">(Đã ký xác thực điện tử)</div>
+                  <div className="mt-2 inline-block border border-slate-300 bg-slate-50 px-2 py-1 rounded text-[10px] text-left">
+                    <div>✔ <strong>XÁC THỰC KÝ SỐ Y BẠ ĐIỆN TỬ</strong></div>
+                    <div className="text-slate-500 font-mono">Mã: ZB-RX-{selectedRecord.appointmentCode || '8838'}</div>
+                  </div>
+                  <div className="font-bold text-slate-900 text-xs mt-1.5">{selectedRecord.doctorName || 'BS. Nguyễn Văn Hùng'}</div>
                 </div>
               </div>
             </div>

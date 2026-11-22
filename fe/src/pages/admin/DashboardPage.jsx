@@ -590,7 +590,7 @@ const DashboardPage = () => {
               </div>
             </div>
 
-            {/* Table Element - 5 cột rõ ràng, không bị tràn cột thao tác */}
+            {/* Table Element - 4 cột tinh gọn, rõ ràng */}
             <div className="overflow-x-auto flex-1">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -598,14 +598,13 @@ const DashboardPage = () => {
                     <th className="py-3.5 px-5 min-w-[220px]">Bệnh nhân & Liên hệ</th>
                     <th className="py-3.5 px-4 min-w-[170px]">Dịch vụ & Bác sĩ</th>
                     <th className="py-3.5 px-4 min-w-[130px] whitespace-nowrap">Thời gian hẹn</th>
-                    <th className="py-3.5 px-4 min-w-[130px] whitespace-nowrap">Trạng thái</th>
-                    <th className="py-3.5 px-5 min-w-[170px] text-right whitespace-nowrap">Thao tác xử lý</th>
+                    <th className="py-3.5 px-5 min-w-[140px] text-right whitespace-nowrap">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-slate-400">
+                      <td colSpan={4} className="py-12 text-center text-slate-400">
                         <div className="flex flex-col items-center justify-center gap-2">
                           <RefreshCw className="w-5 h-5 animate-spin text-blue-600" />
                           <span className="text-slate-600 font-medium">Đang đồng bộ dữ liệu lịch hẹn từ Database...</span>
@@ -614,7 +613,7 @@ const DashboardPage = () => {
                     </tr>
                   ) : filteredAppointments.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-slate-400">
+                      <td colSpan={4} className="py-12 text-center text-slate-400">
                         <div className="flex flex-col items-center justify-center gap-1.5">
                           <Calendar className="w-8 h-8 text-slate-300" />
                           <span className="font-semibold text-slate-700">Không có lịch hẹn nào phù hợp</span>
@@ -682,66 +681,8 @@ const DashboardPage = () => {
                         </td>
 
                         {/* Cột 4: Trạng thái */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          {renderStatusBadge(apt.status)}
-                        </td>
-
-                        {/* Cột 5: Thao tác xử lý trực tiếp */}
                         <td className="py-3.5 px-5 text-right whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1.5">
-                            {apt.status === 'PENDING' && (
-                              <>
-                                <button
-                                  disabled={updatingId === apt.id}
-                                  onClick={() => handleUpdateStatus(apt.id, 'CONFIRMED')}
-                                  title="Xác nhận duyệt lịch hẹn này"
-                                  className="px-2.5 py-1 text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-300 font-semibold cursor-pointer shadow-xs disabled:opacity-50"
-                                >
-                                  {updatingId === apt.id ? 'Đang duyệt...' : 'Duyệt ca'}
-                                </button>
-                                <button
-                                  disabled={updatingId === apt.id}
-                                  onClick={() => handleUpdateStatus(apt.id, 'CANCELLED')}
-                                  title="Hủy lịch hẹn này"
-                                  className="px-2 py-1 text-xs text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors border border-rose-200 font-medium cursor-pointer shadow-xs disabled:opacity-50"
-                                >
-                                  Hủy ca
-                                </button>
-                              </>
-                            )}
-
-                            {apt.status === 'CONFIRMED' && (
-                              <button
-                                disabled={updatingId === apt.id}
-                                onClick={() => handleOpenCompleteModal(apt)}
-                                title="Hoàn tất ca khám & kê đơn thuốc cho bệnh nhân"
-                                className="px-2.5 py-1 text-xs text-purple-800 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-300 font-semibold cursor-pointer flex items-center gap-1 shadow-xs disabled:opacity-50"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5 text-purple-700" />
-                                <span>Hoàn thành</span>
-                              </button>
-                            )}
-
-                            {apt.status === 'COMPLETED' && (
-                              <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                                Đã hoàn tất
-                              </span>
-                            )}
-
-                            {apt.status === 'CANCELLED' && (
-                              <span className="text-[11px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
-                                Đã hủy
-                              </span>
-                            )}
-
-                            <Link
-                              to="/admin/appointments"
-                              title="Xem chi tiết tại Quản lý lịch hẹn"
-                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors inline-block ml-1"
-                            >
-                              <ChevronRight className="w-4 h-4" />
-                            </Link>
-                          </div>
+                          {renderStatusBadge(apt.status)}
                         </td>
                       </tr>
                     ))

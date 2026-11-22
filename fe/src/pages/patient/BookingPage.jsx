@@ -3,6 +3,7 @@ import { dentalServiceApi } from '../../services/dentalServiceApi';
 import { doctorApi } from '../../services/doctorApi';
 import { appointmentApi } from '../../services/appointmentApi';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ServiceIcon } from '../../components/common/ServiceIcon';
 import { 
   Calendar, 
   Clock, 
@@ -26,15 +27,16 @@ const BookingPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const doctorIdFromUrl = searchParams.get('doctorId');
+  const serviceIdFromUrl = searchParams.get('serviceId');
 
-  // Danh mục dịch vụ mặc định (fallback)
+  // Danh mục dịch vụ mặc định chuẩn nha khoa (fallback)
   const DEFAULT_SERVICES = [
-    { id: '1', name: 'Khám tổng quát & Tư vấn', price: 'Miễn phí', time: '20 phút', icon: '🩺', category: 'Tổng quát' },
-    { id: '2', name: 'Cạo vôi & Đánh bóng siêu âm', price: '200.000đ', time: '30 phút', icon: '✨', category: 'Vệ sinh' },
-    { id: '3', name: 'Tẩy trắng răng Laser Whitening', price: '1.500.000đ', time: '45 phút', icon: '💎', category: 'Thẩm mỹ' },
-    { id: '4', name: 'Nhổ răng khôn Piezotome', price: '1.000.000đ', time: '30 phút', icon: '🦷', category: 'Tiểu phẫu' },
-    { id: '5', name: 'Niềng răng / Khay trong suốt', price: 'Từ 18.000.000đ', time: '45 phút', icon: '😁', category: 'Chỉnh nha' },
-    { id: '6', name: 'Cấy ghép Implant thẩm mỹ', price: 'Từ 12.000.000đ', time: '60 phút', icon: '🔩', category: 'Implant' },
+    { id: '1', name: 'Khám tổng quát & Tư vấn', price: 'Miễn phí', time: '20 phút', icon: 'Stethoscope', category: 'Tổng quát' },
+    { id: '2', name: 'Cạo vôi & Đánh bóng siêu âm', price: '200.000đ', time: '30 phút', icon: 'Sparkles', category: 'Vệ sinh' },
+    { id: '3', name: 'Tẩy trắng răng Laser Whitening', price: '1.500.000đ', time: '45 phút', icon: 'Zap', category: 'Thẩm mỹ' },
+    { id: '4', name: 'Nhổ răng khôn không đau Piezotome', price: '1.000.000đ', time: '30 phút', icon: 'ShieldCheck', category: 'Tiểu phẫu' },
+    { id: '5', name: 'Niềng răng mắc cài / Khay trong suốt', price: '18.000.000đ', time: '45 phút', icon: 'Smile', category: 'Chỉnh nha' },
+    { id: '6', name: 'Cấy ghép Implant thẩm mỹ', price: '12.000.000đ', time: '60 phút', icon: 'Layers', category: 'Implant' },
   ];
 
   // Danh sách bác sĩ mặc định dự phòng
@@ -163,12 +165,21 @@ const BookingPage = () => {
             name: item.name,
             price: Number(item.price) === 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN').format(item.price) + 'đ',
             time: `${item.estimatedDurationMinutes} phút`,
-            icon: item.icon || '🦷',
+            icon: item.icon || 'Stethoscope',
             category: item.category,
             description: item.description,
           }));
           setServices(mapped);
-          setSelectedService(mapped[0].id);
+
+          // Nếu có serviceId từ URL (chuyển từ Trang chủ sang)
+          if (serviceIdFromUrl) {
+            const found = mapped.find((s) => String(s.id) === String(serviceIdFromUrl));
+            if (found) {
+              setSelectedService(String(found.id));
+            }
+          } else {
+            setSelectedService(mapped[0].id);
+          }
         }
       } catch (err) {
         console.warn('Không thể tải dịch vụ từ server, dùng fallback:', err);
@@ -177,7 +188,17 @@ const BookingPage = () => {
       }
     };
     fetchServices();
-  }, []);
+  }, [serviceIdFromUrl]);
+
+  // Đồng bộ lại selectedService khi URL param serviceId hoặc services thay đổi
+  useEffect(() => {
+    if (serviceIdFromUrl && services.length > 0) {
+      const found = services.find((s) => String(s.id) === String(serviceIdFromUrl));
+      if (found) {
+        setSelectedService(String(found.id));
+      }
+    }
+  }, [serviceIdFromUrl, services]);
 
   // Tải danh sách bác sĩ chuyên khoa từ Backend MySQL
   useEffect(() => {
@@ -474,11 +495,11 @@ const BookingPage = () => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {filteredServices.map((item) => {
-                      const isSelected = selectedService === item.id;
+                      const isSelected = String(selectedService) === String(item.id);
                       return (
                         <div
                           key={item.id}
-                          onClick={() => setSelectedService(item.id)}
+                          onClick={() => setSelectedService(String(item.id))}
                           className={`cursor-pointer rounded-xl border p-4 transition-all relative group ${
                             isSelected
                               ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-400/50 shadow-xs'
@@ -486,7 +507,15 @@ const BookingPage = () => {
                           }`}
                         >
                           <div className="flex items-start gap-3 pr-5">
-                            <span className="text-2xl shrink-0">{item.icon}</span>
+                            <ServiceIcon 
+                              service={item} 
+                              className={`w-5 h-5 ${isSelected ? 'text-blue-600' : 'text-slate-600'}`} 
+                              containerClassName={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
+                                isSelected 
+                                  ? 'bg-blue-100/90 border-blue-200 text-blue-600 shadow-xs' 
+                                  : 'bg-slate-50 border-slate-200/80 text-slate-500 group-hover:border-blue-200'
+                              }`} 
+                            />
                             <div className="flex-1 min-w-0">
                               <h3 className={`text-sm font-semibold leading-tight ${isSelected ? 'text-blue-900' : 'text-slate-900'}`}>
                                 {item.name}

@@ -15,6 +15,17 @@ import {
   UserCheck
 } from 'lucide-react';
 import { doctorApi } from '../../services/doctorApi';
+import { dentalServiceApi } from '../../services/dentalServiceApi';
+import { ServiceIcon } from '../../components/common/ServiceIcon';
+
+const DEFAULT_SERVICES_LIST = [
+  { id: 1, name: 'Khám tổng quát & Tư vấn', price: 'Miễn phí', time: '20 phút', icon: 'Stethoscope', description: 'Bác sĩ kiểm tra răng miệng toàn diện, chụp phim X-quang và lên phác đồ điều trị chuẩn xác.', tag: 'Khuyên dùng' },
+  { id: 2, name: 'Cạo vôi & Đánh bóng siêu âm', price: '200.000đ', time: '30 phút', icon: 'Sparkles', description: 'Làm sạch mảng bám, vôi răng bằng công nghệ sóng siêu âm êm ái, mang lại hơi thở thơm mát.', tag: 'Phổ biến' },
+  { id: 3, name: 'Tẩy trắng răng Laser Whitening', price: '1.500.000đ', time: '45 phút', icon: 'Zap', description: 'Bật từ 2-3 tông chỉ sau 45 phút với công nghệ Laser Whitening độc quyền, bảo vệ men răng.', tag: 'Bán chạy' },
+  { id: 4, name: 'Nhổ răng khôn không đau Piezotome', price: '1.000.000đ', time: '30 phút', icon: 'ShieldCheck', description: 'Công nghệ nhổ răng Piezotome rung siêu âm, không xâm lấn mô mềm, lành thương nhanh chóng.', tag: 'Không đau' },
+  { id: 5, name: 'Niềng răng mắc cài / Khay trong suốt', price: 'Từ 18.000.000đ', time: '45 phút', icon: 'Smile', description: 'Lập phác đồ dịch chuyển răng 3D chuẩn xác, đa dạng lựa chọn mắc cài hoặc khay vô hình.', tag: 'Trả góp 0%' },
+  { id: 6, name: 'Cấy ghép Implant thẩm mỹ', price: 'Từ 12.000.000đ', time: '60 phút', icon: 'Layers', description: 'Phục hồi răng đã mất hoàn hảo với trụ Titanium cao cấp nhập khẩu Thụy Sĩ, bảo hành trọn đời.', tag: 'Bảo hành trọn đời' },
+];
 
 const DEFAULT_DOCTORS_LIST = [
   { id: 13, fullName: 'BS. CKI Trần Minh Tuấn', specialty: 'Chỉnh nha & Răng khôn · 12 năm KN', exp: '12 năm kinh nghiệm', tag: 'Chuyên gia Chỉnh nha' },
@@ -29,6 +40,46 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const [doctors, setDoctors] = useState(DEFAULT_DOCTORS_LIST);
   const [loadingDoctors, setLoadingDoctors] = useState(true);
+  const [services, setServices] = useState(DEFAULT_SERVICES_LIST);
+  const [loadingServices, setLoadingServices] = useState(true);
+
+  // Tải danh mục dịch vụ điều trị thực tế từ Backend API
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setLoadingServices(true);
+        const res = await dentalServiceApi.getActiveServices();
+        const dataList = Array.isArray(res) ? res : (res?.data || []);
+        if (dataList && dataList.length > 0) {
+          const mapped = dataList.map((item) => {
+            const rawPrice = Number(item.price);
+            let displayPrice = 'Miễn phí';
+            if (rawPrice > 0) {
+              displayPrice = rawPrice >= 10000000 
+                ? `Từ ${new Intl.NumberFormat('vi-VN').format(rawPrice)}đ` 
+                : `${new Intl.NumberFormat('vi-VN').format(rawPrice)}đ`;
+            }
+
+            return {
+              id: item.id,
+              name: item.name,
+              price: displayPrice,
+              time: `${item.estimatedDurationMinutes} phút`,
+              icon: item.icon || 'Stethoscope',
+              description: item.description,
+              tag: item.category || 'Nha khoa',
+            };
+          });
+          setServices(mapped);
+        }
+      } catch (err) {
+        console.warn('Không thể tải dịch vụ từ server, dùng danh sách mẫu:', err);
+      } finally {
+        setLoadingServices(false);
+      }
+    };
+    fetchServices();
+  }, []);
 
   // Tải danh sách bác sĩ chuyên khoa thực tế từ Backend API
   useEffect(() => {
@@ -48,6 +99,23 @@ const LandingPage = () => {
     };
     fetchDoctors();
   }, []);
+
+  // Xử lý chuyển trang Đặt lịch với Dịch vụ được chọn sẵn
+  const handleBookWithService = (service) => {
+    const token = localStorage.getItem('access_token');
+    const targetUrl = `/booking?serviceId=${service.id}`;
+
+    if (token) {
+      navigate(targetUrl);
+    } else {
+      navigate(`/login?redirect=${encodeURIComponent(targetUrl)}`, {
+        state: {
+          fromService: service.name || service.title,
+          redirect: targetUrl,
+        },
+      });
+    }
+  };
 
   // Xử lý chuyển trang Đặt lịch với Bác sĩ được chỉ định
   const handleBookWithDoctor = (doc) => {
@@ -79,41 +147,6 @@ const LandingPage = () => {
       }
     }
   }, [navigate]);
-  // Danh sách các dịch vụ nổi bật
-  const services = [
-    {
-      id: 1,
-      title: 'Cạo Vôi & Đánh Bóng',
-      icon: '✨',
-      price: 'Từ 200.000đ',
-      description: 'Làm sạch mảng bám, vôi răng bằng công nghệ sóng siêu âm êm ái, mang lại hơi thở thơm tho.',
-      tag: 'Phổ biến',
-    },
-    {
-      id: 2,
-      title: 'Tẩy Trắng Răng Laser',
-      icon: '💎',
-      price: 'Từ 1.500.000đ',
-      description: 'Bật từ 2-3 tông chỉ sau 45 phút với công nghệ Laser Whitening độc quyền, an toàn men răng.',
-      tag: 'Bán chạy',
-    },
-    {
-      id: 3,
-      title: 'Nhổ Răng Khôn Siêu Âm',
-      icon: '🩺',
-      price: 'Từ 800.000đ',
-      description: 'Công nghệ nhổ răng Piezotome không đau, không sưng, lành thương nhanh chóng trong 24h.',
-      tag: 'Không đau',
-    },
-    {
-      id: 4,
-      title: 'Niềng Răng Thẩm Mỹ',
-      icon: '😁',
-      price: 'Từ 18.000.000đ',
-      description: 'Niềng răng mắc cài hoặc khay trong suốt Invisalign, lập phác đồ dịch chuyển răng 3D chuẩn xác.',
-      tag: 'Trả góp 0%',
-    },
-  ];
 
   // Lý do chọn ZenBooking
   const features = [
@@ -244,8 +277,8 @@ const LandingPage = () => {
           </p>
         </div>
 
-        {/* Lưới Grid Dịch vụ (1 cột mobile, 2 cột tablet, 4 cột PC) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Lưới Grid Dịch vụ (1 cột mobile, 2 cột tablet, 3 cột PC cho 6 dịch vụ chuẩn) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((item) => (
             <div
               key={item.id}
@@ -253,16 +286,18 @@ const LandingPage = () => {
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
-                    {item.icon}
-                  </div>
+                  <ServiceIcon 
+                    service={item} 
+                    className="w-6 h-6 text-blue-600 group-hover:text-white transition-colors" 
+                    containerClassName="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100/80 flex items-center justify-center text-blue-600 group-hover:scale-105 group-hover:bg-blue-600 group-hover:border-blue-600 transition-all shadow-xs" 
+                  />
                   <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">
                     {item.tag}
                   </span>
                 </div>
 
                 <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors mb-2">
-                  {item.title}
+                  {item.name || item.title}
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed mb-4">
                   {item.description}
@@ -272,12 +307,14 @@ const LandingPage = () => {
               <div className="pt-4 border-t border-slate-100">
                 <div className="text-xs text-slate-400 mb-1">Chi phí ước tính:</div>
                 <div className="text-base font-extrabold text-blue-600 mb-4">{item.price}</div>
-                <Link
-                  to="/booking"
-                  className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold text-slate-700 bg-slate-50 hover:bg-blue-600 hover:text-white transition-colors"
+                <button
+                  type="button"
+                  onClick={() => handleBookWithService(item)}
+                  className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 px-3.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-50 hover:bg-blue-600 hover:text-white transition-all cursor-pointer shadow-xs active:scale-[0.98]"
                 >
-                  Đặt lịch khám <ChevronRight size={14} />
-                </Link>
+                  <span>Đặt lịch khám</span>
+                  <ChevronRight size={14} />
+                </button>
               </div>
             </div>
           ))}

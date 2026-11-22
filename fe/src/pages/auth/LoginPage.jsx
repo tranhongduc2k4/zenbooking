@@ -9,6 +9,7 @@ const LoginPage = () => {
   const [searchParams] = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || location.state?.redirect;
   const fromDoctor = location.state?.fromDoctor;
+  const fromService = location.state?.fromService;
 
   const [formData, setFormData] = useState({ identifier: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -66,16 +67,18 @@ const LoginPage = () => {
           <p className="text-sm text-slate-500 mt-1">Đăng nhập vào tài khoản ZenBooking của bạn</p>
         </div>
 
-        {/* Thông báo chuyển hướng đặt lịch bác sĩ nếu có */}
+        {/* Thông báo chuyển hướng đặt lịch bác sĩ hoặc dịch vụ nếu có */}
         {redirectUrl && (
           <div className="mb-5 p-3.5 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-2.5 text-xs text-blue-900 shadow-xs">
-            <span className="text-lg">👨‍⚕️</span>
+            <span className="text-lg">{fromDoctor ? '👨‍⚕️' : '🩺'}</span>
             <div>
               <span className="font-bold text-blue-800">Đặt lịch khám chuyên khoa:</span>
               <p className="mt-0.5 text-blue-700 leading-relaxed">
                 {fromDoctor
                   ? `Vui lòng đăng nhập để hoàn tất đặt lịch khám cùng ${fromDoctor}!`
-                  : 'Vui lòng đăng nhập để tiếp tục đặt lịch hẹn với bác sĩ bạn đã chọn!'}
+                  : fromService
+                  ? `Vui lòng đăng nhập để hoàn tất đặt lịch cho dịch vụ "${fromService}"!`
+                  : 'Vui lòng đăng nhập để tiếp tục hoàn tất đặt lịch khám của bạn!'}
               </p>
             </div>
           </div>
